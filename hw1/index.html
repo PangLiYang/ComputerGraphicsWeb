@@ -84,8 +84,8 @@
     }
 
     // Create Saturn's Ring
-    float radiusOfY = 0.056 + 0.004 * cos(uTime);
-    float radiusOfX = 0.42 + 0.004 * sin(uTime);
+    float radiusOfY = 0.056 + 0.004 * cos(0.3 * uTime);
+    float radiusOfX = 0.42 + 0.004 * sin(0.3 * uTime);
     float dist = (vPos.x * vPos.x / radiusOfX) + (vPos.y * vPos.y / radiusOfY);
 
     if (dist > 0.8 && dist < 1.2) {
@@ -137,7 +137,7 @@ Homework 1. Shader Program
 <!!-------- HERE IS WHERE YOU CAN PROVIDE A LONGER TEXT DESCRIPTION -------->
 
 <script id='my_instructions' type='text/html'><font color=#b0b0b0>
-Simulating Saturn in Space with Parabolic Comet Trails for Visual Decoration.
+Simulating Saturn in space with parabolic comet trails and light effects to replicate day-night transitions
 </script>
 
 
