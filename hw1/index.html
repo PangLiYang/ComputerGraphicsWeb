@@ -2,7 +2,7 @@
 
 <body bgcolor=black text=white link=white alink=white vlink=white>
 <center>
-<canvas id='canvas1' width=400 height=400></canvas>
+<canvas id='canvas1' width=600 height=600></canvas>
 </center>
 </body>
 
@@ -23,39 +23,103 @@
 
 <script id='my_fragment_shader' type='x-shader/x-fragment'>
 
- uniform float uTime;   // TIME, IN SECONDS
+ uniform float uTime;
 
- varying vec3 vPos;     // -1 < vPos.x < +1
-                        // -1 < vPos.y < +1
-                        //      vPos.z == 0
+ varying vec3 vPos;
 
- // A FRAGMENT SHADER MUST DEFINE main().
+ float starsGenerator(vec3 vPos) {
+     float starDensity = 0.001;
+     float noiseValue = fract(sin(dot(vPos, vec3(12.5678, 87.4321, 0.0))) * 12345.0);
+     
+     return noiseValue < starDensity ? 1.0 : 0.0;
+ }
+
+ vec2 rotatedParabolic(float time, float angle) {
+     float speed = 0.6;
+     float amplitude = 1.2;
+
+     float xx = mod(time * speed, 3.0) - 1.5;
+     float yy = -amplitude * (xx * xx - 1.0);
+
+     vec2 rotatedVec = vec2(
+         xx * cos(angle) - yy * sin(angle),
+         xx * sin(angle) + yy * cos(angle)
+     );
+
+     return rotatedVec;
+ }
 
  void main() {
 
- // SET A COLOR FOR THIS FRAGMENT.
+    // Create the background universe with random stars
+    vec3 rgb = vec3(0.0);
+    float stars = starsGenerator(vPos);
+    rgb = mix(rgb, vec3(1.0), stars);
 
-    // mix(A , B , float)
+    // Create Saturn planet
+    float radiusOfSaturn = 0.17;
+    float rr = vPos.x * vPos.x + vPos.y * vPos.y;
 
-    vec3 rgb = mix(vec3(.2,.05,.05), vec3(0.,.3,1.), .5 + .5 * vPos.y);
+    vec3 lightDir = normalize(vec3(1.0 , 1.0, sin(0.3 * uTime)));
 
-    for (int i = 0 ; i < 20 ; i++) {
+    if (rr < radiusOfSaturn) {
+        rgb = 1.2 * normalize(vec3(234, 214, 184)) - 0.6 * vec3(sqrt(rr)) 
+            + 0.05 * noise(25.0 * vPos);
 
-       float x = 8. * vPos.x + 20. * noise(10. * vec3(float(i)) + 100. + .1 * uTime);
-       float y = 8. * vPos.y + 20. * noise(10. * vec3(float(i)) + 200. + .1 * uTime);
+        float b = max(0.0, dot(vec3(vPos.x, vPos.y, sqrt(1.0 - rr)), lightDir));
+        rgb -= 0.5 * b;
 
-       //x += .1 * noise(3. * vPos);
-       //y += .1 * noise(3. * vPos + 100. + uTime);
+        if (vPos.y + 0.03 * noise(sin(vec3(vPos.x + vPos.y))) > 0.18 
+            && vPos.y - 0.03 * noise(vec3(sin(vPos.x + vPos.y))) < 0.30) {
+            rgb += 0.3 * normalize(vec3(191,189,175));
+        }
+        if (vPos.y + 0.04 * noise(sin(vec3(vPos.x + vPos.y))) > -0.13
+            && vPos.y - 0.04 * noise(vec3(sin(vPos.x + vPos.y))) < 0.10) {
+            rgb += 0.3 * normalize(vec3(191,189,175));
+        }
+        if (vPos.y + 0.02 * noise(sin(vec3(vPos.x + vPos.y))) > -0.29
+            && vPos.y - 0.02 * noise(vec3(sin(vPos.x + vPos.y))) < -0.20) {
+            rgb += 0.3 * normalize(vec3(191,189,175));
+        }   
+    }
 
-       vec3 lightDir = normalize(vec3(sin(uTime),1.,1.));
+    // Create Saturn's Ring
+    float radiusOfY = 0.056 + 0.004 * cos(uTime);
+    float radiusOfX = 0.42 + 0.004 * sin(uTime);
+    float dist = (vPos.x * vPos.x / radiusOfX) + (vPos.y * vPos.y / radiusOfY);
 
-       float rr = 1. - x*x - y*y;
-       if (rr > 0.) {
-          float z = sqrt(rr);
-          float b = max(0., dot(vec3(x,y,z), lightDir));
-          rgb = vec3(.1,.05,.05) + .8 * vec3(b) * vec3(.2,.5,1.);
-          rgb *= 1. + .5 * noise(3. * vec3(x,y,z + .1 * uTime));
-       }
+    if (dist > 0.8 && dist < 1.2) {
+        if (vPos.y < 0.0 || rr > radiusOfSaturn) {
+            rgb = normalize(vec3(206, 206, 206)) - 0.3 * vec3(sqrt(dist)) 
+                + 0.05 * noise(25.0 * vPos);
+            float b = max(0.0, dot(vec3(vPos.x, vPos.y, sqrt(1.0 - rr)), lightDir));
+            rgb -= 0.3 * b;
+        }
+    }
+
+    if (dist > 0.90 && dist < 0.94) {
+        if (vPos.y < 0.0 || rr > radiusOfSaturn) {
+            rgb = 1.5 * normalize(vec3(206, 206, 206)) - 0.3 * vec3(sqrt(dist)) 
+                + 0.05 * noise(25.0 * vPos);
+            float b = max(0.0, dot(vec3(vPos.x, vPos.y, sqrt(1.0 - rr)), lightDir));
+            rgb -= 0.3 * b;
+        }
+    }
+
+    // Create comets
+
+    for (int i = 0; i < 20; i++) {
+        float currTime = uTime - float(i) * 0.01;
+        vec2 cometPos = rotatedParabolic(currTime, radians(-45.0));
+
+        float cometRR = sqrt((vPos.x - cometPos.x) * (vPos.x - cometPos.x)
+                      + (vPos.y - cometPos.y) * (vPos.y - cometPos.y));
+        float cometSize = 0.06 - 0.003 * float(i);
+        
+        if (cometRR < cometSize) {
+            rgb = normalize(vec3(145,173,182)) + vec3(0.01 * float(i))
+                - 0.8 * vec3(sqrt(cometRR)) - 0.1 * noise(70.0 * vPos);
+        }
     }
 
     gl_FragColor = vec4(sqrt(rgb), 1.0);
@@ -66,16 +130,14 @@
 <!!-------- CREATE A PROPERLY DESCRIPTIVE TITLE BELOW -------->
 
 <script id='my_title' type='text/html'>
-THIS IS A VERY COOL SHADER PROGRAM.
+Homework 1. Shader Program
 </script>
 
 
 <!!-------- HERE IS WHERE YOU CAN PROVIDE A LONGER TEXT DESCRIPTION -------->
 
 <script id='my_instructions' type='text/html'><font color=#b0b0b0>
-Map x and y to
-<br>
-green and red.
+Simulating Saturn in Space with Parabolic Comet Trails for Visual Decoration.
 </script>
 
 
