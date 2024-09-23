@@ -1,0 +1,150 @@
+<body bgcolor=black>
+<center>
+<canvas id='canvas1' width=800 height=800></canvas>
+
+<script>
+
+// INITIALIZE GPU PROGRAM
+
+let start_gl = (canvas, meshData, vertexSize, vertexShader, fragmentShader) => {
+   let gl = canvas.getContext("webgl");
+   let program = gl.createProgram();
+   gl.program = program;
+   let addshader = (type, src) => {
+      let shader = gl.createShader(type);
+      gl.shaderSource(shader, src);
+      gl.compileShader(shader);
+      if (! gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+         throw "Cannot compile shader:\n\n" + gl.getShaderInfoLog(shader);
+      gl.attachShader(program, shader);
+   };
+   addshader(gl.VERTEX_SHADER  , vertexShader  );
+   addshader(gl.FRAGMENT_SHADER, fragmentShader);
+   gl.linkProgram(program);
+   if (! gl.getProgramParameter(program, gl.LINK_STATUS))
+      throw "Could not link the shader program!";
+   gl.useProgram(program);
+   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+   gl.enable(gl.DEPTH_TEST);
+   gl.depthFunc(gl.LEQUAL);
+   let vertexAttribute = (name, size, position) => {
+      let attr = gl.getAttribLocation(program, name);
+      gl.enableVertexAttribArray(attr);
+      gl.vertexAttribPointer(attr, size, gl.FLOAT, false, vertexSize * 4, position * 4);
+   }
+   vertexAttribute('aPos', 3, 0);
+   return gl;
+}
+
+// LOGIC TO TRACK THE CURSOR
+
+let r = canvas1.getBoundingClientRect(), cursor = [0,0,0];
+let setCursor = (e, z) => cursor = [ (e.clientX - r.left) / canvas1.width * 2 - 1,
+                                     1 - (e.clientY - r.top) / canvas1.height * 2,
+                                     z !== undefined ? z : cursor[2] ];
+canvas1.onmousedown = e => setCursor(e, 1);
+canvas1.onmousemove = e => setCursor(e,  );
+canvas1.onmouseup   = e => setCursor(e, 0);
+
+// TRIANGLE DATA (IN THIS CASE, ONE SQUARE)
+
+let meshData = [
+   { type: 1, mesh: new Float32Array([ -1,1,0, 1,1,0, -1,-1,0, 1,-1,0 ]) },
+];
+
+// VERTEX AND FRAGMENT SHADERS
+
+let vertexSize = 3;
+let vertexShader = `
+   attribute vec3 aPos;
+   varying   vec3 vPos;
+   void main() {
+      gl_Position = vec4(aPos, 1.0);
+      vPos = aPos;
+   }
+`;
+let fragmentShader = `
+   precision mediump float;
+   uniform float uTime, uFL;
+   uniform vec3  uCursor;
+   varying vec3  vPos;
+
+   vec3 bgColor = vec3(0.,0.,.05);
+
+   vec3 C = vec3(uCursor.xy,-uFL);
+   float r = 0.2;
+
+   void main(void) {
+
+      // SET BACKGROUND COLOR
+
+      vec3 color = bgColor;
+
+      vec3 L = normalize(vec3(1.));
+
+      vec3 V = vec3(0.);
+      vec3 W = normalize(vec3(vPos.xy, -uFL));
+
+      V -= C;
+      float VV = dot(V,V);
+      float VW = dot(V,W);
+
+      float d = VW * VW - (VV - r*r);
+      if (d > 0.) {
+         float t = -VW - sqrt(d);
+	 vec3 P = (V+C) + t * W;
+	 vec3 N = normalize(P - C);
+         color = vec3(.1) + max(0., dot(N, L));
+	 if (uCursor.z > 0.)
+	    color *= vec3(1.,.5,.5);
+      }
+
+      gl_FragColor = vec4(sqrt(color), 1.);
+   }
+`;
+
+// WAIT 100 MSECS BEFORE STARTING UP
+
+setTimeout(() => {
+   let gl = start_gl(canvas1, meshData, vertexSize, vertexShader, fragmentShader);
+
+   // FIND LOCATIONS IN GPU PROGRAM OF UNIFORM VARIABLES
+
+   let uFL       = gl.getUniformLocation(gl.program, "uFL"      );
+   let uTime     = gl.getUniformLocation(gl.program, "uTime"    );
+   let uCursor   = gl.getUniformLocation(gl.program, "uCursor"  ); 
+
+   // ANIMATE AND RENDER EACH ANIMATION FRAME
+
+   let startTime = Date.now() / 1000;
+   setInterval(() => {
+      
+      // SET ALL UNIFORM VARIABLES
+
+      let time = Date.now() / 1000 - startTime;
+      gl.uniform1f(uTime, time);
+      gl.uniform3fv(uCursor, cursor);
+
+      gl.uniform1f(uFL, 3);
+
+      // RENDER THE FRAME
+
+      for (let n = 0 ; n < meshData.length ; n++) {
+         let mesh = meshData[n].mesh;
+         gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
+         gl.drawArrays(meshData[n].type ? gl.TRIANGLE_STRIP : gl.TRIANGLES, 0, mesh.length / vertexSize);
+      }
+   }, 30);
+}, 100);
+</script>
+
+
+
+
+
+
+
+
+
+
+
