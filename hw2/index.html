@@ -27,9 +27,32 @@
 
     precision mediump float;
     uniform float uTime, uFL;
-    const int NSPHERES = 5;
-    uniform vec4 uSphere[NSPHERES];
+
+    const int numOfNeutron = 7;
+    const int numOfProton = 6;
+    const int numOfElectron = 6;
+
+    uniform vec4 uNeutron[numOfNeutron];
+    uniform vec4 uProton[numOfProton];
+    uniform vec4 uElectron[numOfElectron];
+
+    uniform vec4 uBackGround[1];
+
     varying vec3 vPos;
+
+    float turbulence(vec3 P) {
+        float f = 0., s = 1.;
+        for (int i = 0 ; i < 9 ; i++) {
+           f += abs(noise(s * P)) / s;
+           s *= 2.;
+           P = vec3(.866*P.x + .5*P.z, P.y + 100., -.5*P.x + .866*P.z);
+        }
+        return f;
+     }
+
+    vec3 rgb255(float r, float g, float b) {
+        return vec3(r, g, b) / vec3(255.0);
+    }
 
     float raySphere(vec3 V, vec3 W, vec4 Sphere) {
 
@@ -45,49 +68,222 @@
         return -1.0;
     }
 
-    vec3 bgColor = vec3(0.0, 0.0, 0.05);
+    float raySphereNoised(vec3 V, vec3 W, vec4 Sphere) {
+
+        float noisyRadius = Sphere.w + 0.1 * turbulence(vPos.xyz * 20.0 + 1.5 * uTime);
+
+        V -= Sphere.xyz;
+        float VV = dot(V, V);
+        float VW = dot(V, W);
+        float discriminant = VW * VW - (VV - noisyRadius * noisyRadius);
+
+        if (discriminant > 0.0) {
+            return -VW - sqrt(discriminant);
+        }
+
+        return -1.0;
+    }
+
+    float distSphere(vec4 Sphere1, vec4 Sphere2) {
+
+        vec3 diff = Sphere1.xyz - Sphere2.xyz;
+
+        return sqrt(dot(diff, diff));
+    }
+
+    vec3 bgColor = vec3(0.0, 0.0, 0.0);
+
 
     void main() {
     
         vec3 color = bgColor;
-        vec3 lightSource = normalize(vec3(1.0, 1.0, 1.0));
 
         vec3 V = vec3(0.0);
         vec3 W = normalize(vec3(vPos.xy, -uFL));
 
         float tMin = 1000.0;
 
-        for (int i = 0; i < NSPHERES; i += 1) {
+        for (int i = 0; i < numOfNeutron; i += 1) {
 
-            float t = raySphere(V, W, uSphere[i]);
-            
+            float t = raySphere(V, W, uNeutron[i]);
+        
             if (t > 0.0 && t < tMin) {
                 tMin = t;
                 vec3 P = V + t * W;
-                vec3 N = normalize(P - uSphere[i].xyz);
+                vec3 N = normalize(P - uNeutron[i].xyz);
 
-                color = vec3(0.2);
+                color = 0.4 * rgb255(85.0, 51.0, 17.0);
 
-                bool isInShadow = false;
+                if (turbulence(vPos * 10.0 + 0.15 * uTime) > 0.4) {
+                    color -= 0.25 * turbulence(vPos * 10.0 + 0.15 * uTime);
+                }
 
-                for (int j = 0; j < NSPHERES; j += 1) {
-                    if (j != i) {
-                        if (raySphere(P, lightSource, uSphere[j]) > 0.0) {
+                for (int j = 0; j < numOfElectron; j += 1) {
+                    
+                    vec3 lightSource = normalize(uElectron[j].xyz - uNeutron[i].xyz);
+                    bool isInShadow = false;
+                    float mul = 1.0;
+
+                    if (uElectron[j].w != 0.04) {
+                        mul = 5.0;
+                    }
+
+                    for (int k = 0; k < numOfNeutron; k += 1) {
+                        if (k != i) {
+                            if (raySphere(P, lightSource, uNeutron[k]) > 0.0) {
+                                isInShadow = true;
+                            }
+                        }
+                    }
+
+                    for (int k = 0; k < numOfProton; k += 1) {
+                        if (raySphere(P, lightSource, uProton[k]) > 0.0) {
                             isInShadow = true;
                         }
                     }
+
+                    if (!isInShadow) {
+                        color -= mul * 0.05 * max(0.0, dot(N, lightSource)) * rgb255(85.0, 51.0, 17.0);
+                        vec3 E = vec3(0.0, 0.0, 1.0);
+                        vec3 R = 2.0 * N * dot(N, E) - E;
+                        vec3 s = rgb255(50.0, 40.0, 20.0) * pow(max(0.0, dot(R, lightSource)), 20.0);
+                        color -= mul * 0.5 * s;
+                    }
+                }
+            }
+        }
+
+        
+        for (int i = 0; i < numOfProton; i += 1) {
+
+            float t = raySphere(V, W, uProton[i]);
+        
+            if (t > 0.0 && t < tMin) {
+                tMin = t;
+                vec3 P = V + t * W;
+                vec3 N = normalize(P - uProton[i].xyz);
+
+                color = 0.2 * rgb255(86.0, 50.0, 50.0);
+
+                for (int j = 0; j < numOfElectron; j += 1) {
+
+                    vec3 lightSource = normalize(uElectron[j].xyz - uProton[i].xyz);
+                    bool isInShadow = false;
+                    float mul = 1.0;
+
+                    if (uElectron[j].w != 0.04) {
+                        mul = 5.0;
+                    }
+
+                    for (int k = 0; k < numOfNeutron; k += 1) {
+                        if (raySphere(P, lightSource, uNeutron[k]) > 0.0) {
+                            isInShadow = true;
+                        }
+                    }
+
+                    for (int k = 0; k < numOfProton; k += 1) {
+                        if (k != i) {
+                            if (raySphere(P, lightSource, uProton[k]) > 0.0) {
+                                isInShadow = true;
+                            }
+                        }
+                    }
+
+                    if (!isInShadow) {
+                        color += mul * 0.2 * max(0.0, dot(N, lightSource)) * rgb255(48.0, 92.0, 222.0);
+                        vec3 E = vec3(0.0, 0.0, 1.0);
+                        vec3 R = 2.0 * N * dot(N, E) - E;
+                        vec3 s = rgb255(48.0, 92.0, 222.0) * pow(max(0.0, dot(R, lightSource)), 20.0);
+                        color += mul * 0.4 * s;
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < numOfElectron; i += 1) {
+
+            vec3 lightSource = normalize(vec3(0.0, 0.0, 1.0));
+
+            if (uElectron[i].w == 0.04) {
+
+                float t = raySphere(V, W, uElectron[i]);
+            
+                if (t > 0.0 && t < tMin) {
+                    tMin = t;
+                    vec3 P = V + t * W;
+                    vec3 N = normalize(P - uElectron[i].xyz);
+
+                    color = 0.1 * rgb255(222.0, 189.0, 104.0);
+                    color += 1.2 * max(0.0, dot(N, lightSource)) * rgb255(222.0, 189.0, 104.0);
                 }
 
-                if (!isInShadow) {
-                    color += 0.5 * vec3(0.5, 0.0, 0.0) * max(0.0, dot(N, lightSource));
-                    vec3 E = vec3(0.0, 0.0, 1.0);
-                    vec3 R = 2.0 * N * dot(N, E) - E;
-                    vec3 s = vec3(1.0) * pow(max(0.0, dot(R, lightSource)), 20.0);
-                    color += s;
+            } else if (uElectron[i].w != 0.04){
+
+                float t = raySphereNoised(V, W, uElectron[i]);
+            
+                if (t > 0.0 && t < tMin) {
+                    tMin = t;
+                    vec3 P = V + t * W;
+                    vec3 N = normalize(P - uElectron[i].xyz);
+
+                    color = 0.5 * rgb255(255.0, 10.0, 20.0);
+
+                    if (turbulence(vPos * 15.0 + 2.0 * uTime) > 0.3) {
+                        color -= 0.3 * turbulence(vPos * 1.0 + 0.5 * uTime);
+                    }
+
+                    color += 0.1 * max(0.0, dot(N, lightSource)) * rgb255(222.0, 189.0, 104.0);
                 }
 
             }
+        }
 
+        for (int i = 0; i < 1; i += 1) {
+
+            float t = raySphere(V, W, uBackGround[i]);
+        
+            if (t > 0.0 && t < tMin) {
+                tMin = t;
+                vec3 P = V + t * W;
+                vec3 N = normalize(P - uBackGround[i].xyz);
+
+                color = 0.01 * rgb255(15.0, 94.0, 156.0);
+
+                if (noise(vPos * 8.0 + 0.2 * uTime) > 0.32) {
+                    color += 0.2 * noise(vPos * 8.0 + 0.2 * uTime);
+                }
+
+                if (noise(vPos * 8.0 + 0.2 * uTime) > 0.42) {
+                    color += 0.2 * noise(vPos * 8.0 + 0.2 * uTime);
+                }
+
+                for (int j = 0; j < numOfElectron; j += 1) {
+
+                    vec3 lightSource = normalize(uElectron[j].xyz - uBackGround[i].xyz);
+                    bool isInShadow = false;
+                    float mul = 1.0;
+
+                    if (uElectron[j].w != 0.04) {
+                        mul = 5.0;
+                    }
+
+                    for (int k = 0; k < numOfNeutron; k += 1) {
+                        if (raySphere(P, lightSource, uNeutron[k]) > 0.0) {
+                            isInShadow = true;
+                        }
+                    }
+
+                    for (int k = 0; k < numOfProton; k += 1) {
+                        if (raySphere(P, lightSource, uProton[k]) > 0.0) {
+                            isInShadow = true;
+                        }
+                    }
+
+                    if (!isInShadow) {
+                        color += mul * 0.02 * max(0.0, dot(N, lightSource)) * rgb255(15.0, 94.0, 156.0);
+                    }
+                }
+            }
         }
 
         gl_FragColor = vec4(sqrt(color), 1.0);
@@ -105,7 +301,11 @@ Homework 2. Ray Tracing
 <!!-------- HERE IS WHERE YOU CAN PROVIDE A LONGER TEXT DESCRIPTION -------->
 
 <script id='my_instructions' type='text/html'><font color=#b0b0b0>
-Simulating Saturn in space with parabolic comet trails and light effects to replicate day-night transitions
+Simulating an atom in deep water.<br>
+Neutrons are designed as a strange antimatter that absorbs light.<br>
+Protons are depicted as a blue metallic material.<br>
+Electrons are portrayed as light sources.<br>
+If two or more electrons get too close, they become unstable, forming a red fireball that releases a massive amount of light.
 </script>
 
 
@@ -141,7 +341,7 @@ document.body.innerHTML = [''
 
 let text = fs.split('\n'), cols = 0;
 for (let i = 0 ; i < text.length ; i++)
-   cols = Math.max(cols, text[i].length);
+   cols = Math.max(cols, text[i].length * 2 / 3);
 
 textArea.rows = text.length;
 textArea.cols = cols;
@@ -157,19 +357,144 @@ textArea.onkeyup = function() { canvas1.setShaders(vs, this.value); }
 
 let startTime = Date.now();
 
+let numOfNeutron = 7;
+let numOfProton = 6;
+
+let backGround = [];
+backGround.push(0, 0, -20, 15.0);
+
+let neutrons = [];
+neutrons.push(0.12 * Math.cos(Math.PI / 3), 0, -3 + 0.12 * Math.sin(Math.PI / 3), 0.06);
+neutrons.push(-0.12, 0, -3, 0.06);
+neutrons.push(-0.12 * Math.cos(Math.PI / 3), 0, -3 - 0.12 * Math.sin(Math.PI / 3), 0.06);
+neutrons.push(0.06, Math.sqrt(0.0048), -3 - 0.04 * Math.sin(Math.PI / 3), 0.06);
+neutrons.push(-0.06, Math.sqrt(0.0048), -3 - 0.04 * Math.sin(Math.PI / 3), 0.06);
+neutrons.push(-0.06, -Math.sqrt(0.0048), -3 + 0.04 * Math.sin(Math.PI / 3), 0.06);
+neutrons.push(0, -Math.sqrt(0.0048), -3 - 0.08 * Math.sin(Math.PI / 3), 0.06);
+
+let protons = [];
+protons.push(0, 0, -3, 0.06);
+protons.push(-0.12 * Math.cos(Math.PI / 3), 0, -3 + 0.12 * Math.sin(Math.PI / 3), 0.06);
+protons.push(0.12 * Math.cos(Math.PI / 3), 0, -3 - 0.12 * Math.sin(Math.PI / 3), 0.06);
+protons.push(0.12, 0, -3, 0.06);
+protons.push(0, Math.sqrt(0.0048), -3 + 0.08 * Math.sin(Math.PI / 3), 0.06);
+protons.push(0.06, -Math.sqrt(0.0048), -3 + 0.04 * Math.sin(Math.PI / 3), 0.06);
+
 function animate(gl) {
     let time = (Date.now() - startTime) / 1000;
-    let NSPHERES = 5;
-    let data = [];
-    for (let i = 0; i < NSPHERES; i += 1) {
-        let theta = 2 * Math.PI * i / NSPHERES + time;
-        let cos = 0.35 * Math.cos(theta);
-        let sin = 0.35 * Math.sin(theta);
-        data.push(cos, 0, -3 + sin, 0.2);
+    
+    let numOfElectron = 6;
+    
+    let electrons = [];
+    electrons.push(0.5 *  Math.sin(    0.3 * time),      0.2 * Math.sin(0.3 * time),     -3 + Math.cos(0.3 * time), 0.04);
+    electrons.push(-0.3 * Math.cos(1 + 0.3 * time),  0.3 * Math.cos(1 + 0.3 * time), -3 - Math.sin(1 + 0.3 * time), 0.04);
+    electrons.push(0.2 *  Math.sin(2 + 0.3 * time),  0.5 * Math.sin(2 + 0.3 * time), -3 + Math.cos(2 + 0.3 * time), 0.04);
+    electrons.push(-0.5 * Math.cos(3 + 0.3 * time), 0.1 *  Math.cos(3 + 0.3 * time), -3 - Math.sin(3 + 0.3 * time), 0.04);
+    electrons.push(0.3 *  Math.sin(4 + 0.3 * time), 0.4 *  Math.sin(4 + 0.3 * time), -3 + Math.cos(4 + 0.3 * time), 0.04);
+    electrons.push(-0.2 * Math.cos(5 + 0.3 * time), 0.5 *  Math.cos(5 + 0.3 * time), -3 - Math.sin(5 + 0.3 * time), 0.04);
+
+    let combineThreshold = 0.2;
+    let combinedTime = 2.0;
+    let separationDistance = 0.05;
+
+    let combinedPairs = [];
+
+    for (let i = 0; i < electrons.length; i += 4) {
+        for (let j = i + 4; j < electrons.length; j += 4) {
+            let dx = electrons[i] - electrons[j];
+            let dy = electrons[i+1] - electrons[j+1];
+            let dz = electrons[i+2] - electrons[j+2];
+            
+            let distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            
+            if (distance < combineThreshold) {
+                if (!combinedPairs.some(pair => (pair.i === i && pair.j === j) || (pair.i === j && pair.j === i))) {
+                    
+                    let combinedX = (electrons[i] + electrons[j]) / 2;
+                    let combinedY = (electrons[i+1] + electrons[j+1]) / 2;
+                    let combinedZ = (electrons[i+2] + electrons[j+2]) / 2;
+                    let combinedRadius = (electrons[i+3] + electrons[j+3]) * 5 / 8;
+                    
+                    combinedPairs.push({
+                        i: i, j: j, 
+                        combinedX: combinedX, 
+                        combinedY: combinedY, 
+                        combinedZ: combinedZ, 
+                        combinedRadius: combinedRadius,
+                        timer: combinedTime
+                    });
+                    
+                    electrons[i] = combinedX;
+                    electrons[i+1] = combinedY;
+                    electrons[i+2] = combinedZ;
+                    electrons[i+3] = combinedRadius;
+
+                    electrons[j] = combinedX;
+                    electrons[j+1] = combinedY;
+                    electrons[j+2] = combinedZ;
+                    electrons[j+3] = combinedRadius;
+                }
+            }
+        }
     }
+
+    
+    let cosCont = Math.cos(- Math.PI / 450);
+    let sinCont = Math.sin(- Math.PI / 450);
+
+    function rotatePoint(x, y, z, sin, cos) {
+
+        z += 3;
+
+        let x1 = x * cos - y * sin;
+        let y1 = x * sin + y * cos;
+        let z1 = z;
+
+        let x2 = x1 * cos + z1 * sin;
+        let y2 = y1;
+        let z2 = -x1 * sin + z1 * cos;
+
+        z2 -= 3;
+
+        return [x2, y2, z2];
+    }
+
+
+    
+    for (let i = 0; i < neutrons.length; i += 4) {
+        let x = neutrons[i];
+        let y = neutrons[i + 1];
+        let z = neutrons[i + 2];
+        let r = neutrons[i + 3];
+
+        let [newX, newY, newZ] = rotatePoint(x, y, z, sinCont, cosCont);
+
+        neutrons[i] = newX;
+        neutrons[i + 1] = newY;
+        neutrons[i + 2] = newZ;
+    }
+
+    
+
+    for (let i = 0; i < protons.length; i += 4) {
+        let x = protons[i];
+        let y = protons[i + 1];
+        let z = protons[i + 2];
+        let r = protons[i + 3];
+
+        let [newX, newY, newZ] = rotatePoint(x, y, z, sinCont, cosCont);
+
+        protons[i] = newX;
+        protons[i + 1] = newY;
+        protons[i + 2] = newZ;
+    } 
+
     setUniform('1f', 'uTime', time);
     setUniform('1f', 'uFL', 3);
-    setUniform('4fv', 'uSphere', data);
+    setUniform('4fv', 'uNeutron', neutrons);
+    setUniform('4fv', 'uProton', protons);
+    setUniform('4fv', 'uElectron', electrons);
+    setUniform('4fv', 'uBackGround', backGround);
 }
 
 // START EVERYTHING.

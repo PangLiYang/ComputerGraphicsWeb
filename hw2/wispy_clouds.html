@@ -1,0 +1,115 @@
+<body bgcolor=black>
+<center>
+<canvas id='canvas1' width=500 height=500></canvas>
+
+<script>
+let start_gl = (canvas, meshData, vertexSize, vertexShader, fragmentShader) => {
+   let gl = canvas.getContext("webgl");
+   let program = gl.createProgram();
+   gl.program = program;
+   let addshader = (type, src) => {
+      let shader = gl.createShader(type);
+      gl.shaderSource(shader, src);
+      gl.compileShader(shader);
+      if (! gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+         throw "Cannot compile shader:\n\n" + gl.getShaderInfoLog(shader);
+      gl.attachShader(program, shader);
+   };
+   addshader(gl.VERTEX_SHADER  , vertexShader  );
+   addshader(gl.FRAGMENT_SHADER, fragmentShader);
+   gl.linkProgram(program);
+   if (! gl.getProgramParameter(program, gl.LINK_STATUS))
+      throw "Could not link the shader program!";
+   gl.useProgram(program);
+   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+   gl.enable(gl.DEPTH_TEST);
+   gl.depthFunc(gl.LEQUAL);
+   let vertexAttribute = (name, size, position) => {
+      let attr = gl.getAttribLocation(program, name);
+      gl.enableVertexAttribArray(attr);
+      gl.vertexAttribPointer(attr, size, gl.FLOAT, false, vertexSize * 4, position * 4);
+   }
+   vertexAttribute('aPos', 3, 0);
+   return gl;
+}
+
+let r = canvas1.getBoundingClientRect(), cursor = [0,0,0];
+let setCursor = (e, z) => cursor = [ (e.clientX - r.left) / canvas1.width * 2 - 1,
+                                     1 - (e.clientY - r.top) / canvas1.height * 2,
+                                     z !== undefined ? z : cursor[2] ];
+canvas1.onmousedown = e => setCursor(e, 1);
+canvas1.onmousemove = e => setCursor(e,  );
+canvas1.onmouseup   = e => setCursor(e, 0);
+
+let meshData = [
+   { type: 1, mesh: new Float32Array([ -1,1,0, 1,1,0, -1,-1,0, 1,-1,0 ]) },
+];
+
+let vertexSize = 3;
+let vertexShader = `
+   attribute vec3 aPos;
+   varying   vec3 vPos;
+   void main() {
+      gl_Position = vec4(aPos, 1.0);
+      vPos = aPos;
+   }
+`;
+let fragmentShader = `
+precision mediump float;
+
+float noise(vec3 point) { float r = 0.; for (int i=0;i<16;i++) {
+  vec3 D, p = point + mod(vec3(i,i/4,i/8) , vec3(4.0,2.0,2.0)) +
+       1.7*sin(vec3(i,5*i,8*i)), C=floor(p), P=p-C-.5, A=abs(P);
+  C += mod(C.x+C.y+C.z,2.) * step(max(A.yzx,A.zxy),A) * sign(P);
+  D=34.*sin(987.*float(i)+876.*C+76.*C.yzx+765.*C.zxy);P=p-C-.5;
+  r+=sin(6.3*dot(P,fract(D)-.5))*pow(max(0.,1.-2.*dot(P,P)),4.);
+} return .5 * sin(r); }
+
+float turbulence(vec3 P) {
+   float f = 0., s = 1.;
+   for (int i = 0 ; i < 9 ; i++) {
+      f += abs(noise(s * P)) / s;
+      s *= 2.;
+      P = vec3(.866*P.x + .5*P.z, P.y + 100., -.5*P.x + .866*P.z);
+   }
+   return f;
+}
+
+uniform float uTime;
+uniform vec3  uCursor;
+varying vec3  vPos;
+
+void main(void) {
+   vec3 color = vec3(.3,.6,1.);
+   float y = .1 * vPos.y - .3;
+   y += turbulence(.5 * vPos + vec3(.03*uTime,0.,.03*uTime));
+   color = mix(color, vec3(.5), y<0.?0.:y>.1?1.:y/.1);
+   color = mix(color, vec3(1.7), y<.1?0.:y-.1);
+   gl_FragColor = vec4(color,1.);
+}
+`;
+
+// WAIT 100 MSECS BEFORE STARTING UP
+
+setTimeout(() => {
+   let gl = start_gl(canvas1, meshData, vertexSize, vertexShader, fragmentShader);
+   let uTime   = gl.getUniformLocation(gl.program, "uTime"  );
+   let uCursor = gl.getUniformLocation(gl.program, "uCursor"); 
+   let startTime = Date.now() / 1000;
+   setInterval(() => {
+      gl.uniform1f (uTime, Date.now() / 1000 - startTime);
+      //gl.uniform3fv(uCursor, cursor);
+      for (let n = 0 ; n < meshData.length ; n++) {
+         let mesh = meshData[n].mesh;
+         gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
+         gl.drawArrays(meshData[n].type ? gl.TRIANGLE_STRIP : gl.TRIANGLES, 0, mesh.length / vertexSize);
+      }
+   }, 30);
+}, 100);
+</script>
+
+
+
+
+
+
