@@ -12,7 +12,9 @@ chmod 644 "$BASE_DIR/graphics/index.html"
 # Set permissions for homework directories and their contents
 chmod 711 "$BASE_DIR/graphics/hw1/"
 chmod 711 "$BASE_DIR/graphics/hw2/"
+chmod 711 "$BASE_DIR/graphics/hw3/"
 chmod 644 "$BASE_DIR/graphics/hw1/"*
 chmod 644 "$BASE_DIR/graphics/hw2/"*
+chmod 644 "$BASE_DIR/graphics/hw3/"*
 
 echo "Permissions have been updated successfully."
