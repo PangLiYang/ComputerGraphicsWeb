@@ -191,7 +191,7 @@
    function Matrix() {
        this.identity = () => value = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
        this.translate   = (x,y,z) => value = multiply(value, [1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]);
-       this.rotateX     = theta   => <font color=blue>value = multiply(value, [1,0,0,0,              0,Math.cos(theta),Math.sin(theta),0, 
+       this.rotateX     = theta   => <font color=blue>value = multiply(value, [1,0,0,0,                               0,Math.cos(theta),Math.sin(theta),0, 
                                                               0,-Math.sin(theta),Math.cos(theta),0,  0,0,0,1]);</font>
        this.rotateY     = theta   => <font color=blue>value = multiply(value, [Math.cos(theta),0,-Math.sin(theta),0,  0,1,0,0, 
                                                               Math.sin(theta),0,Math.cos(theta),0,   0,0,0,1]);</font>
