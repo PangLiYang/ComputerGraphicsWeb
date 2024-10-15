@@ -226,9 +226,9 @@
                for (let j = 0; j < n; j += 1) {
                    let curr = 0;
                    for (let k = 0; k < n; k += 1) {
-                       curr += matrix1[i * n + k] * matrix2[k * n + j];
+                       curr += matrix1[k * n + i] * matrix2[j * n + k];
                    }
-                   res[i * n + j] = curr;
+                   res[j * n + i] = curr;
                }
            }
     
