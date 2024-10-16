@@ -5,11 +5,8 @@ let fragmentShader = `
     uniform mat4 uA[`+NQ+`], uB[`+NQ+`], uC[`+NQ+`];
     varying vec3  vPos;
 
-    vec3 bgColor = vec3(0.0, 0.0, 0.05);
-
-    //vec3 material = vec3(1.0, 0.0, 0.0);
-    //vec3 highlight = vec3(1.0);
-    //float power = 20.0;
+    vec3 bgColor = vec3(0.1, 0.1, 0.9);
+    float epsilon = 0.0001;
 
     mat4 fixMatrix(mat4 Q) {
         
@@ -115,6 +112,37 @@ let fragmentShader = `
         return mat3(r0, r1, r2);
     }
 
+    vec3 findReflection (vec3 W, vec3 N) {
+        W = normalize(W);
+        N = normalize(N);
+
+        return normalize(W - 2.0 * dot(N, W) * N);
+    }
+
+    vec3 findRefraction (vec3 W, vec3 N, float n1, float n2) {
+        W = normalize(W);
+        N = normalize(N);
+
+        vec3 c1 = dot(W, N) * N;
+        vec3 s1 = W - c1;
+        vec3 s2 = n1 / n2 * s1;
+        vec3 c2 = -sqrt(1.0 - s2 * s2) * N;
+
+        return c2 + s2;
+    }
+
+    vec3 findRefraction2 (vec3 W, vec3 N, float n1, float n2) {
+        W = normalize(W);
+        N = normalize(N);
+
+        vec3 c1 = dot(W, N) * N;
+        vec3 s1 = W - c1;
+        vec3 s2 = n1 / n2 * s1;
+        vec3 c2 = sqrt(1.0 - s2 * s2) * N;
+
+        return c2 + s2;
+    }
+
     void main(void) {
 
         // Set Background Color
@@ -131,19 +159,9 @@ let fragmentShader = `
         vec3 material, highlight;
         float power;
 
-        if (uCursor.x < -.3) {
-            material = vec3(.5,.17,0.);    // GOLD
-            highlight = 1.2 * material;
-            power = 8.;
-        } else if (uCursor.x > .3) {
-            material = vec3(.4,.05,.0);    // COPPER
-            highlight = 1.2 * material;
-            power = 6.;
-        } else {
-            material = vec3(1.,0.,0.);    // RED PLASTIC
-            highlight = vec3(1.);
-            power = 20.;
-        }
+        //material = vec3(1.,0.,0.);
+        //highlight = vec3(1.);
+        //power = 20.;
 
         // Start Ray Tracing
 
@@ -163,6 +181,21 @@ let fragmentShader = `
 
                 if (t > 0.0 && t < tMin) {
                     tMin = t;
+
+                    if (i == 6) {
+                        material = vec3(0.9, 0.9, 0.9);
+                        highlight = 1.2 * material;
+                        power = 4.0;
+                    } else if (i >= 2) {
+                        material = vec3(1.0, 0.0, 0.0);
+                        highlight = vec3(1.0);
+                        power = 20.0;
+                    } else {
+                        material = vec3(0.5, 0.17, 0.0);
+                        highlight = 1.2 * material;
+                        power = 8.0;
+                    }
+                    
                     color = 0.2 * material;
                     
                     vec3 P = info[1];
@@ -192,11 +225,85 @@ let fragmentShader = `
                         }
                     
                     }
-                        
-                }
-            
-            }
 
+                    // Reflection
+
+                    vec3 R = findReflection(W, N);
+
+                    float rMin = 1000.0;
+
+                    for (int j = 0 ; j < ` + NQ + ` ; j++) {
+                    
+                        if (i != j && i != 6) {
+                            mat3 obj = rayQ3(P + epsilon * R, R, uA[j], uB[j], uC[j], 1);
+
+                            if (obj[0].z > 0.0 && obj[0].x > 0.0 && obj[0].x < rMin) {
+                                rMin = obj[0].x;
+
+                                if (j == 6) {
+                                    material = 0.5 * vec3(0.9, 0.9, 0.9);
+                                    highlight = 1.2 * material;
+                                    power = 4.0;
+                                } else if (j >= 2) {
+                                    material = vec3(1.0, 0.0, 0.0);
+                                    highlight = vec3(1.0);
+                                    power = 20.0;
+                                } else {
+                                    material = vec3(0.5, 0.17, 0.0);
+                                    highlight = 1.2 * material;
+                                    power = 8.0;
+                                }
+
+                                color = 0.5 * material;
+                            }
+                        }
+                    }
+
+                    // Refraction
+
+                    if (i == 6) {
+
+                        float rfMin = 1000.0;
+
+                        vec3 rf1 = findRefraction(W, N, 1.0, 1.5);
+                        mat3 self = rayQ3(P - epsilon * rf1, rf1, uA[i], uB[i], uC[i], 0);
+
+                        vec3 P2 = self[1];
+                        vec3 N2 = self[2];
+                        vec3 rf2 = findRefraction2(rf1, N2, 1.5, 1.0);
+
+                        color = 0.7 * bgColor;
+
+                        for (int j = 0 ; j < ` + NQ + ` ; j++) {
+                    
+                            if (i != j) {
+
+                                mat3 obj = rayQ3(P2 + epsilon * rf2, rf2, uA[j], uB[j], uC[j], 1);
+
+                                if (obj[0].z > 0.0 && obj[0].x > 0.0 && obj[0].x < rfMin) {
+                                    rfMin = obj[0].x;
+
+                                    if (j == 6) {
+                                        material = vec3(0.9, 0.9, 0.9);
+                                        highlight = 1.2 * material;
+                                        power = 4.0;
+                                    } else if (j >= 2) {
+                                        material = vec3(1.0, 0.0, 0.0);
+                                        highlight = vec3(1.0);
+                                        power = 20.0;
+                                    } else {
+                                        material = vec3(0.5, 0.17, 0.0);
+                                        highlight = 1.2 * material;
+                                        power = 8.0;
+                                    }
+
+                                    color = 0.5 * material;
+                                }
+                            }
+                        }
+                    }    
+                }
+            }
         }
 
         gl_FragColor = vec4(sqrt(color), 1.);
