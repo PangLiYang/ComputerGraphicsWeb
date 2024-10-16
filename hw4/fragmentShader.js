@@ -297,7 +297,32 @@ let fragmentShader = `
                                         power = 8.0;
                                     }
 
-                                    color = 0.5 * material;
+                                    color = 0.2 * material;
+
+                                    for (int k = 0; k < 2; k += 1) {
+
+                                        bool inShadow = false;
+
+                                        for (int h = 0 ; h < ` + NQ + ` ; h++) {
+                                        
+                                            if (h != j && h != i) {
+                                                mat3 obstacle = rayQ3(P, uL[k], uA[h], uB[h], uC[h], 1);
+
+                                                if (obstacle[0].z > 0.0 && obstacle[0].x > 0.0) {
+                                                    inShadow = true;
+                                                }
+                                            }
+                                        }
+
+                                        if (!inShadow) {
+                                            vec3 d = material * max(0.0, dot(obj[2], uL[1]));
+                                            vec3 E = vec3(0.0, 0.0, 1.0);
+                                            vec3 R = rf2 - 2.0 * obj[2] * dot(obj[2], rf2);
+                                            vec3 s = highlight * pow(max(0., dot(R, uL[1])), power);
+                                            color += d + s;
+                                        }
+                                    
+                                    }
                                 }
                             }
                         }
