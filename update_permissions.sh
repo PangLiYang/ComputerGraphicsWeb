@@ -13,8 +13,10 @@ chmod 644 "$BASE_DIR/graphics/index.html"
 chmod 711 "$BASE_DIR/graphics/hw1/"
 chmod 711 "$BASE_DIR/graphics/hw2/"
 chmod 711 "$BASE_DIR/graphics/hw3/"
+chmod 711 "$BASE_DIR/graphics/hw4/"
 chmod 644 "$BASE_DIR/graphics/hw1/"*
 chmod 644 "$BASE_DIR/graphics/hw2/"*
 chmod 644 "$BASE_DIR/graphics/hw3/"*
+chmod 644 "$BASE_DIR/graphics/hw4/"*
 
 echo "Permissions have been updated successfully."
