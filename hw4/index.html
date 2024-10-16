@@ -246,12 +246,21 @@ setTimeout(() => {
       
       addShape(T6, transform(yParaboloid, scale(1, 18, 1)), ySlab);
 
+      /*
       let T7 = multiply(translation(5 * cursor[0], 5 * cursor[1], -15),
                        multiply(rotationY(-pi / 12),
                                 multiply(rotationX(-pi / 12),
 					                          scale(1.5,1.5,.1))));
       
       addShape(T7, xSlab, ySlab, zSlab);
+      */
+
+      let T7 = multiply(translation(5 * cursor[0], 5 * cursor[1], -15),
+                       multiply(rotationY(-pi / 12),
+                                multiply(rotationX(-pi / 12),
+					                          scale(2.5, 2.5, .2))));
+      
+      addShape(T7, transform(sphere, translation(0,0,-.4)), transform(sphere, translation(0,0,.4)));
 
 
       // SEND QUADRIC DATA TO THE FRAGMENT SHADER
