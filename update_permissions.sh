@@ -15,10 +15,12 @@ chmod 711 "$BASE_DIR/graphics/hw2/"
 chmod 711 "$BASE_DIR/graphics/hw3/"
 chmod 711 "$BASE_DIR/graphics/hw4/"
 chmod 711 "$BASE_DIR/graphics/hw5/"
+chmod 711 "$BASE_DIR/graphics/hw6/"
 chmod 644 "$BASE_DIR/graphics/hw1/"*
 chmod 644 "$BASE_DIR/graphics/hw2/"*
 chmod 644 "$BASE_DIR/graphics/hw3/"*
 chmod 644 "$BASE_DIR/graphics/hw4/"*
 chmod 644 "$BASE_DIR/graphics/hw5/"*
+chmod 644 "$BASE_DIR/graphics/hw6/"*
 
 echo "Permissions have been updated successfully."
