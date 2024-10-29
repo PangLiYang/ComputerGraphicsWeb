@@ -337,8 +337,10 @@ function renderFrame() {
 
          M.save();
             M.translate(-boneLen / 1.5, 0, 0);
-            M.rotateY(Math.PI / 6);
-            M.rotateX(10.8 * Math.PI / 6);
+
+            M.rotateZ(-4 * Math.PI / 6)
+             .rotateX(-Math.PI / 2);
+            
             M.scale(headSize * boneLen, headSize * boneLen, headSize * boneLen);
             render(Tetrahedron, boneColor);
          M.restore();
@@ -359,36 +361,49 @@ function renderFrame() {
 
          // Light
 
-         let lightSwing = .5 + .4 * S(0.8 * time);
+         let lightSwing = .6 + .1 * S(0.8 * time);
 
          M.save();
-            M.translate(-.03, .17, 0);
+            M.translate(-.07, .21, 0);
 
             M.save();
 
-               M.translate(0, -boneLen, 0).rotateZ(Math.PI / 6).translate(0, boneLen, 0);
+               M.translate(0, -boneLen, 0).rotateZ(lightSwing).translate(0, boneLen, 0);
 
                M.save();
                   M.scale(boneLen / 16, boneLen / 2, boneLen / 16);
                   render(Cube, boneColor);
                M.restore();
 
-               M.translate(0, boneLen * 3 / 4, 0);
+               M.translate(0, boneLen, 0);
 
                M.save();
 
-                  M.translate(0, -boneLen / 4, 0).rotateZ(lightSwing).translate(0, boneLen / 4, 0);
+                  M.translate(0, -boneLen / 2, 0).rotateZ(lightSwing).translate(0, boneLen / 2, 0);
 
                   M.save();
-                     M.scale(boneLen / 16, boneLen / 4, boneLen / 16);
+                     M.scale(boneLen / 16, boneLen / 2, boneLen / 16);
                      render(Cube, boneColor);
                   M.restore();
 
-                  M.translate(0, boneLen / 1.5, 0);
+                  M.translate(0, boneLen, 0);
 
                   M.save();
-                     M.scale(boneLen / 3, boneLen / 3, boneLen / 3);
-                     render(Sphere, lightColor);
+
+                     M.translate(0, -boneLen / 2, 0).rotateZ(lightSwing).translate(0, boneLen / 2, 0);
+
+                     M.save();
+                        M.scale(boneLen / 16, boneLen / 2, boneLen / 16);
+                        render(Cube, boneColor);
+                     M.restore();
+
+                     M.translate(0, boneLen / 1.5, 0);
+
+                     M.save();
+                        M.scale(boneLen / 3, boneLen / 3, boneLen / 3);
+                        render(Sphere, lightColor);
+                     M.restore();
+
                   M.restore();
 
                M.restore();
@@ -402,11 +417,12 @@ function renderFrame() {
          M.translate(-1 * boneLen, 0, 0);
 
          M.save();
-            M.rotateY(Math.PI / 6)
-            .translate(1 * boneLen, 0, 0)
-            .rotateZ(0.5 + .5 * S(time))
-            .translate(-1 * boneLen, 0, 0);
-            M.scale(boneLen / 1, boneLen / 2, boneLen / 2);
+
+            M.translate(0, -.0, 0);
+            M.translate(1 * boneLen, 0, 0).rotateZ(.5 + .5 * S(time)).translate(-1 * boneLen, 0, 0);
+            M.rotateX(-Math.PI / 2);
+
+            M.scale(boneLen / .8, boneLen / 1.5, boneLen / 2);
             render(Tetrahedron, boneColor);
          M.restore();
 
@@ -540,62 +556,6 @@ function renderFrame() {
       M.restore();
 
    M.restore();
-
-
-   M.save();
-   M.restore();
-
-   
-
-
-
-   /*
-   M.translate(0, limbLength/2, 0).rotateX(hipSway).translate(0, -limbLength/2, 0);   
-
-   M.save();
-      M.translate(0, limbLength/2, 0).scale(.05, 0.05, hipWidth);
-      render(Sphere, skinColor);
-   M.restore();
-
-   for (let side = -1; side <= 1; side += 2) {
-
-      let knee = .5 + .5 * S(t + side * Math.PI / 2 * phaseDiff);
-
-      M.save();
-
-         M.translate(0, 0, hipWidth * side).translate(0, limbLength/2, 0);
-         M.rotateX(-hipSway).rotateZ(knee);
-         M.translate(0, -limbLength/2, 0);
-
-         M.save();
-            M.scale(.05, limbLength/2, .05);
-            render(Sphere, skinColor);
-         M.restore();
-
-         M.translate(0, -limbLength, 0);
-
-         M.save();
-
-            M.translate(0, limbLength/2, 0).rotateZ(-2 * knee).translate(0, -limbLength/2, 0);
-
-            M.save();
-               M.scale(.05, limbLength/2, .05);
-               render(Sphere, skinColor);
-            M.restore();
-
-            M.translate(0, -limbLength/2, 0);
-
-            M.save();
-               M.translate(limbLength/4, 0, 0).scale(limbLength/4, .05, .05);
-               render(Sphere, skinColor);
-            M.restore();
-
-
-         M.restore();
-
-      M.restore();
-   }
-   */
 
 }
 requestAnimationFrame(renderFrame);
