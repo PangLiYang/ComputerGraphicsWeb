@@ -306,8 +306,8 @@ function renderFrame() {
 
    let phaseDiff = 1; //.5 + .5 * S(time);
 
-   M.translate(-.5, 0, 0);
-   M.rotateY(Math.PI / 4).rotateZ(Math.PI / 12);
+   M.translate(-.0, 0, 0);
+   M.rotateY(Math.PI / 4 + 0.1 * time).rotateZ(Math.PI / 12);
    // M.rotateX(Math.PI / 2);
 
    // 1st bone
