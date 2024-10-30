@@ -212,11 +212,16 @@ let vertexShader = `
 
 let fragmentShader = `
    precision mediump float;
+   uniform float uTime;
    uniform vec3 uColor;
    varying vec3 vPos, vNor;
    void main(void) {
       //float c = .05 + max(0., dot(normalize(vNor), vec3(-.57, .57, .57)));
-      float c = .05 + max(0., dot(normalize(vNor), vec3(-.707, .0, .707)));
+
+      //vec3 light = vec3(cos(0.1 * uTime), 0.0, sin(0.1 * uTime));
+      vec3 light = vec3(-.707, .0, .707);
+      float c = .05 + max(0., dot(normalize(vNor), light));
+
       gl_FragColor = vec4(sqrt(c * uColor), 1.);
    }
 `;
@@ -228,6 +233,7 @@ let gl = start_gl(canvas1, vertexSize, vertexShader, fragmentShader);
 let uColor     = gl.getUniformLocation(gl.program, "uColor"    );
 let uInvMatrix = gl.getUniformLocation(gl.program, "uInvMatrix");
 let uMatrix    = gl.getUniformLocation(gl.program, "uMatrix"   );
+let uTime      = gl.getUniformLocation(gl.program, "uTime"  );
 
 // INSTANTIATE THE MATRIX OBJECT
 
@@ -291,9 +297,13 @@ let bondSupport = (M, boneLen, boneColor, modifier) => {
 // THE ANIMATION LOOP
 
 let startTime = Date.now() / 1000;
+
 function renderFrame() {
    requestAnimationFrame(renderFrame);
+
    let time = Date.now() / 1000 - startTime, m;
+   gl.uniform1f(uTime, time);
+   
    // time = 0;
 
    M.identity().perspective(3);
@@ -341,7 +351,7 @@ function renderFrame() {
             M.rotateZ(-4 * Math.PI / 6)
              .rotateX(-Math.PI / 2);
             
-            M.scale(headSize * boneLen, headSize * boneLen, headSize * boneLen);
+            M.scale(headSize * boneLen, headSize * boneLen / 1.5, headSize * boneLen);
             render(Tetrahedron, boneColor);
          M.restore();
 
@@ -349,13 +359,13 @@ function renderFrame() {
 
          M.save();
             M.translate(-.07, .03, .02);
-            M.scale(headSize * boneLen / 3, headSize * boneLen / 3, headSize * boneLen / 3);
+            M.scale(headSize * boneLen / 4, headSize * boneLen / 4, headSize * boneLen / 4);
             render(Sphere, eyeColor);
          M.restore();
 
          M.save();
             M.translate(-.07, .03, -.02);
-            M.scale(headSize * boneLen / 3, headSize * boneLen / 3, headSize * boneLen / 3);
+            M.scale(headSize * boneLen / 4, headSize * boneLen / 4, headSize * boneLen / 4);
             render(Sphere, eyeColor);
          M.restore();
 
@@ -422,7 +432,7 @@ function renderFrame() {
             M.translate(1 * boneLen, 0, 0).rotateZ(.5 + .5 * S(time)).translate(-1 * boneLen, 0, 0);
             M.rotateX(-Math.PI / 2);
 
-            M.scale(boneLen / .8, boneLen / 1.5, boneLen / 2);
+            M.scale(boneLen / .8, boneLen / 2, boneLen / 2);
             render(Tetrahedron, boneColor);
          M.restore();
 
