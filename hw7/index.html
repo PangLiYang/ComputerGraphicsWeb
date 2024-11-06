@@ -1,0 +1,503 @@
+<body bgcolor=#ffffff>
+
+<!! EXPLICITLY POSITION THE CANVAS TO WHERE WE WANT IT TO APPEAR ON THE SCREEN>
+
+<canvas id='canvas1' width=800 height=800 style="position:absolute;left:350;top:70"></canvas>
+<table><tr><td>
+
+<!! INTERACTIVE HTML BUTTONS TO SELECT DIFFERENT PARTS OF THE VEHICLE>
+
+<button><font color=#ff8080 size=10 onmousedown=down('r') onmouseup=up()>Residential</font></button> <br>
+<button><font color=#60e060 size=10 onmousedown=down('c') onmouseup=up()>Commercial</font></button> <br>
+<button><font color=#00a0ff size=10 onmousedown=down('i') onmouseup=up()>Industrial</font></button> <br>
+<button><font color=#e000ff size=10 onmousedown=down('g') onmouseup=up()>Skeleton</font></button> <br>
+
+<!! AN INTERACTIVE HTML SLIDER TO CONTROL ANIMATED SPIN>
+
+<td width=110><td valign=top><br>
+<font face=helvetica size=5>
+Day<input type=range id=speed style="width: 400"></input>Night
+
+<!! SHOW A PHOTO OF AN ACTUAL OMNIWHEEL>
+
+<tr height=100>
+<!-- <tr><td><img src=ga-6.jpg width=350> -->
+
+</table>
+<script>
+
+// MATRIX SUPPORT LIBRARY
+
+speed.defaultValue = 0;
+
+let mInverse = m => {
+   let d = [], de = 0, co = (c, r) => {
+      let s = (i, j) => m[c+i & 3 | (r+j & 3) << 2];
+      return (c+r & 1 ? -1 : 1) * ( (s(1,1) * (s(2,2) * s(3,3) - s(3,2) * s(2,3)))
+                                  - (s(2,1) * (s(1,2) * s(3,3) - s(3,2) * s(1,3)))
+                                  + (s(3,1) * (s(1,2) * s(2,3) - s(2,2) * s(1,3))) );
+   }
+   for (let n = 0 ; n < 16 ; n++) d.push(co(n >> 2, n & 3));
+   for (let n = 0 ; n <  4 ; n++) de += m[n] * d[n << 2]; 
+   for (let n = 0 ; n < 16 ; n++) d[n] /= de;
+   return d;
+}
+let mxm = (a, b) => {
+   let d = [];
+   for (let n = 0 ; n < 16 ; n++)
+      d.push(a[n&3]*b[n&12] + a[n&3|4]*b[n&12|1] + a[n&3|8]*b[n&12|2] + a[n&3|12]*b[n&12|3]);
+   return d;
+}
+let C = t => Math.cos(t), S = t => Math.sin(t);
+let mId = () => [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ];
+let mPe = (fl, m) => mxm(m, [1,0,0,0, 0,1,0,0, 0,0,1,-1/fl, 0,0,0,1]);
+let mRX = (t, m) => mxm(m, [1,0,0,0, 0,C(t),S(t),0, 0,-S(t),C(t),0, 0,0,0,1]);
+let mRY = (t, m) => mxm(m, [C(t),0,-S(t),0, 0,1,0,0, S(t),0,C(t),0, 0,0,0,1]);
+let mRZ = (t, m) => mxm(m, [C(t),S(t),0,0, -S(t),C(t),0,0, 0,0,1,0, 0,0,0,1]);
+let mSc = (x,y,z, m) => mxm(m, [x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1]);
+let mTr = (x,y,z, m) => mxm(m, [1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]);
+function Matrix() {
+   let stack = [mId()], top = 0;
+   let set = arg => { stack[top] = arg; return this; }
+   let get = () => stack[top];
+   this.identity = () => set(mId());
+   this.perspective = fl => set(mPe(fl, get()));
+   this.turnX = t => set(mRX(t, get()));
+   this.turnY = t => set(mRY(t, get()));
+   this.turnZ = t => set(mRZ(t, get()));
+   this.scale = (x,y,z) => set(mSc(x,y?y:x,z?z:x, get()));
+   this.move = (x,y,z) => set(mTr(x,y,z, get()));
+   this.get = () => get();
+   this.S = () => set(stack[top++].slice());
+   this.R = () => --top;
+   this.draw = (shape,color,opacity) => draw(shape,color,opacity);
+}
+
+// INITIALIZE WEBGL
+
+let start_gl = (canvas, vertexSize, vertexShader, fragmentShader) => {
+   let gl = canvas.getContext("webgl");
+   let program = gl.createProgram();
+   gl.program = program;
+   let addshader = (type, src) => {
+      let shader = gl.createShader(type);
+      gl.shaderSource(shader, src);
+      gl.compileShader(shader);
+      if (! gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+         throw "Cannot compile shader:\n\n" + gl.getShaderInfoLog(shader);
+      gl.attachShader(program, shader);
+   };
+   addshader(gl.VERTEX_SHADER  , vertexShader  );
+   addshader(gl.FRAGMENT_SHADER, fragmentShader);
+   gl.linkProgram(program);
+   if (! gl.getProgramParameter(program, gl.LINK_STATUS))
+      throw "Could not link the shader program!";
+   gl.useProgram(program);
+   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+   gl.enable(gl.DEPTH_TEST);
+   gl.enable(gl.BLEND);
+   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+   gl.depthFunc(gl.LEQUAL);
+   let vertexAttribute = (name, size, position) => {
+      let attr = gl.getAttribLocation(program, name);
+      gl.enableVertexAttribArray(attr);
+      gl.vertexAttribPointer(attr, size, gl.FLOAT, false, vertexSize * 4, position * 4);
+   }
+   vertexAttribute('aPos', 3, 0);
+   vertexAttribute('aNor', 3, 3);
+   return gl;
+}
+
+// IMPLEMENT VARIOUS 3D SHAPES
+
+let createMesh = (nu, nv, p) => {
+   let mesh = [];
+   for (let j = nv-1 ; j >= 0 ; j--) {
+      for (let i = 0 ; i <= nu ; i++)
+         mesh.push(p(i/nu,(j+1)/nv), p(i/nu,j/nv));
+      mesh.push(p(1,j/nv), p(0,j/nv));
+   }
+   return new Float32Array(mesh.flat());
+}
+let sphere = (nu, nv) => createMesh(nu, nv, (u,v) => {
+   let theta = 2 * Math.PI * u;
+   let phi = Math.PI * (v - .5);
+   let x = C(phi) * C(theta),
+       y = C(phi) * S(theta),
+       z = S(phi);
+   return [ x,y,z, x,y,z ];
+});
+let tube = (nu, nv) => createMesh(nu, nv, (u,v) => {
+   let x = C(2 * Math.PI * u),
+       y = S(2 * Math.PI * u),
+       z = 2 * v - 1;
+   return [ x,y,z, x,y,0 ];
+});
+let disk = (nu, nv) => createMesh(nu, nv, (u,v) => {
+   let x = v * C(2 * Math.PI * u),
+       y = v * S(2 * Math.PI * u);
+   return [ x,y,0, 0,0,1 ];
+});
+let cylinder = (nu, s) => createMesh(nu, 6, (u,v) => {
+   s = s ? s : 1;
+   let x = C(2 * Math.PI * u),
+       y = S(2 * Math.PI * u);
+   switch (5 * v >> 0) {
+   case 0: return [ 0,0,-1, 0,0,-1 ];
+   case 1: return [ x,y,-1, 0,0,-1 ];
+   case 2: return [ x,y,-1, x,y, 0 ];
+   case 3: return [ s*x,s*y, 1, x,y, 0 ];
+   case 4: return [ s*x,s*y, 1, 0,0, 1 ];
+   case 5: return [ 0,0, 1, 0,0, 1 ];
+   }
+});
+
+let torus = (nu, nv, r) => createMesh(nu, nv, (u,v) => {
+   r = r ? r : .5;
+   let ct = C(2 * Math.PI * u);
+   let st = S(2 * Math.PI * u);
+   let cp = C(2 * Math.PI * v);
+   let sp = S(2 * Math.PI * v);
+   let x = (1 + r * cp) * ct,
+       y = (1 + r * cp) * st,
+       z =      r * sp;
+   return [ x,y,z, cp*ct,cp*st,sp ];
+});
+
+let strToTris = s => {
+   let t = [], i;
+   for (let n = 0 ; n < s.length ; n++)
+      if ((i = 'N0P'.indexOf(s.charAt(n))) >= 0)
+         t.push(i-1);
+   return t;
+}
+
+let cube = strToTris(`PNP00P PPP00P NPP00P  NPP00P NNP00P PNP00P
+                      NPN00N PPN00N PNN00N  PNN00N NNN00N NPN00N
+                      PPNP00 PPPP00 PNPP00  PNPP00 PNNP00 PPNP00
+                      NNPN00 NPPN00 NPNN00  NPNN00 NNNN00 NNPN00
+                      NPP0P0 PPP0P0 PPN0P0  PPN0P0 NPN0P0 NPP0P0
+                      PNN0N0 PNP0N0 NNP0N0  NNP0N0 NNN0N0 PNN0N0`);
+
+// API FOR ACCESSING 3D SHAPES
+
+let Cube       = ()    => { return { type: 0, mesh: new Float32Array(cube) }; }
+let Cylinder   = (n,s) => { return { type: 1, mesh: cylinder(n,s) }; }
+let Disk       = n     => { return { type: 1, mesh: disk    (n, 1) }; }
+let Sphere     = n     => { return { type: 1, mesh: sphere  (n, n/2>>0) }; }
+let Torus      = (n,r) => { return { type: 1, mesh: torus   (n, n, r) }; }
+let Tube       = n     => { return { type: 1, mesh: tube    (n, 1) }; }
+
+// GPU SHADERS
+
+let vertexSize = 6;
+let vertexShader = `
+   attribute vec3 aPos, aNor;
+   uniform mat4 uMatrix, uInvMatrix;
+   varying vec3 vPos, vNor;
+   void main() {
+      vec4 pos = uMatrix * vec4(aPos, 1.0);
+      vec4 nor = vec4(aNor, 0.0) * uInvMatrix;
+      vPos = pos.xyz;
+      vNor = nor.xyz;
+      gl_Position = pos * vec4(1.,1.,-.1,1.);
+   }
+`;
+
+
+let fragmentShader = `
+   precision mediump float;
+   uniform vec3 uColor;
+   uniform float uOpacity, uDayTime;
+   varying vec3 vPos, vNor;
+   void main(void) {
+      float c = .05 + uDayTime * max(0., dot(normalize(vNor), vec3(.57)));
+      gl_FragColor = vec4(sqrt(c * uColor), uOpacity);
+   }
+`;
+
+// DECLARE GL-RELATED VARIABLES AND MATRIX OBJECT
+
+let gl = start_gl(canvas1, vertexSize, vertexShader, fragmentShader);
+let uColor     = gl.getUniformLocation(gl.program, "uColor"    );
+let uOpacity   = gl.getUniformLocation(gl.program, "uOpacity"  );
+let uInvMatrix = gl.getUniformLocation(gl.program, "uInvMatrix");
+let uMatrix    = gl.getUniformLocation(gl.program, "uMatrix"   );
+let uDayTime   = gl.getUniformLocation(gl.program, "uDayTime"   );
+let M = new Matrix();
+
+// DRAW A SINGLE SHAPE TO THE WEBGL CANVAS
+
+let draw = (Shape, color, opacity) => {
+   gl.uniform1f       (uOpacity  , opacity===undefined ? 1 : opacity);
+   gl.uniform3fv      (uColor    , color );
+   gl.uniformMatrix4fv(uInvMatrix, false, mInverse(M.get()));
+   gl.uniformMatrix4fv(uMatrix   , false, M.get()          );
+   gl.bufferData(gl.ARRAY_BUFFER, Shape.mesh, gl.STATIC_DRAW);
+   gl.drawArrays(Shape.type ? gl.TRIANGLE_STRIP : gl.TRIANGLES, 0, Shape.mesh.length / vertexSize);
+   return M;
+}
+
+// THE USER DRAGS THE MOUSE TO VARY rx AND ry
+
+let mx, my, rx = 0, ry = 0;
+canvas1.onmousedown = e => { mx = e.clientX; my = e.clientY; }
+canvas1.onmousemove = e => { if (mx) { rx += e.clientX - mx; ry += e.clientY - my; mx = e.clientX; my = e.clientY; } }
+canvas1.onmouseup = e => mx = undefined;
+
+
+// IMPLEMENT PART SELECTION (TRIGGERED BY THE HTML BUTTONS)
+let selected = 'a';
+let down = a => selected = a;
+let up = () => selected = 'a';
+let s = a => selected == '' ? 1 : selected != a ? .5 : 1;
+
+
+// DEFINE COLORS FOR ALL THE 3D PARTS
+let grass   = [.55, .8, .2];
+let road    = [.1, .1, .1];
+
+let stone =   [.7, .7, .7];
+let roof =    [.9, .3, .1];
+let water =   [.2, .2, .6];
+let wood =    [.9, .5, .3];
+
+let fb =      [.1, .1, .8];
+let fw =      [.9, .9, .9];
+let fg =      [.35, .9, .1];
+
+let grain =   [.9, .8, .6];
+let grain2 =  [.8, .7, .4];
+let grain3 =  [.4, .3, .2];
+
+let factory = [.8, .2, .2];
+let facroof = [.3, .3, .3]; 
+
+
+let time = Date.now() / 1000, t = 0;
+
+let drawHouseUnit = (sc, rc) => {
+   M.S().S().scale(.05,.05,.05).draw(Cube(), sc, 1).R();
+   M.move(.0, .0, .05).turnX(Math.PI/4).scale(.05 / 1.001,.05 / 1.414,.05 / 1.414).draw(Cube(), rc, 1).R();
+}
+
+let drawWindMill = (sc, rc) => {
+   M.S().turnX(Math.PI).scale(.012,.012,.1).draw(Cylinder(20, 2), sc, 1).R();
+   M.move(.0, .0, .1);
+
+   M.S().move(.0, -.015, .0).turnX(Math.PI / 2).scale(.012,.012,.03).draw(Cylinder(20, 2), sc, 1).R();
+   M.S().move(.0, -.045, .0).turnX(Math.PI / 2).turnZ(Math.PI / 4).scale(.1,.015,.001).draw(Cube(), rc, 1).R();
+   M.S().move(.0, -.045, .0).turnX(Math.PI / 2).turnZ(-Math.PI / 4).scale(.1,.015,.001).draw(Cube(), rc, 1).R();
+}
+
+let drawFram = (c1, c2, c3, c4) => {
+   M.S().move(.0, -.05, .0).scale(.05,.05,.01).draw(Cube(), c1, 1).R();
+   M.S().move(-.1, -.05, .0).scale(.05,.05,.01).draw(Cube(), c2, 1).R();
+   M.S().move(-.1, -.15, .0).scale(.05,.05,.01).draw(Cube(), c3, 1).R();
+   M.S().move(.0, -.15, .0).scale(.05,.05,.01).draw(Cube(), c4, 1).R();
+}
+
+function drawFrame() {
+   requestAnimationFrame(drawFrame);
+
+   // General
+   let grassColor   = grass;
+   let roadColor    = road;
+
+   if (selected != 'a') {
+      grassColor = stone;
+      roadColor = stone;
+   }
+
+   // ResColor
+   let stoneColor = stone;
+   let roofColor = roof;
+   let waterColor = water;
+
+   if (selected != 'a' && selected != 'r') {
+      roofColor = stone;
+      waterColor = stone;
+   }
+
+   // ComColor
+   let cstoneColor = stone;
+   let croofColor = roof;
+   let cwaterColor = water;
+   let cwoodColor = wood;
+   let cfbColor = fb;
+   let cfwColor = fw;
+   let cfgColor = fg;
+
+   if (selected != 'a' && selected != 'c') {
+      croofColor = stone;
+      cwaterColor = stone;
+      cwoodColor = stone;
+      cfbColor = stone;
+      fwColor = stone;
+      cfgColor = stone;
+   }
+
+   // IndColor
+   let istoneColor = stone;
+   let iwoodColor = wood;
+   let igrain1Color = grain;
+   let igrain2Color = grain2;
+   let igrain3Color = grain3;
+   let ifactoryColor = factory;
+   let ifacroofColor = facroof;
+
+   if (selected != 'a' && selected != 'i') {
+      iwoodColor = stone;
+      igrain1Color = stone;
+      igrain2Color = stone;
+      igrain3Color = stone;
+      ifactoryColor = stone;
+      ifacroofColor = stone;
+   }
+
+   // gl.clearColor(0.3, 0.8, 0.8, 1.0);
+   // gl.clearColor(0.7, 0.3, 0.2, 1.0);
+   // gl.clearColor(0.2, 0.2, 0.3, 1.0);
+
+   let daytime = speed.value;
+   gl.uniform1f(uDayTime  , (1. - daytime / 100.));
+
+   if (daytime <= 50) {
+      gl.clearColor(0.3 + 0.4 * daytime / 50, 0.8 - 0.5 * daytime / 50, 0.8 - 0.6 * daytime / 50, 1.0);
+   } else {
+      daytime -= 50;
+      gl.clearColor(0.7 - 0.5 * daytime / 50, 0.3 - 0.1 * daytime / 50, 0.2 + 0.1 * daytime / 50, 1.0);
+   }
+
+   gl.clear(gl.COLOR_BUFFER_BIT);
+
+   // RATE OF TIME ADVANCEMENT IS THROTTLED BY THE SPIN SLIDER
+
+   let newTime = Date.now() / 1000;
+   t += (newTime - time) * (speed.value - 50) / 25;
+   // if (Math.abs(speed.value - 50) < 5)
+   //    speed.value = 50;
+   time = newTime;
+
+   // DRAW THE VEHICLE FOR THIS ANIMATION FRAME
+
+   // M.S().turnX(ry/100).turnY(rx/100);
+   M.S().turnX(ry/100).turnY(rx/100).turnX(-Math.PI/3).turnZ(Math.PI/5);
+
+   // Base Land
+   M.S().scale(.7,.7,.01).draw(Cube(), grassColor, 1).R();
+
+   // Roads
+   M.S().move(.35, -.102, .002).scale(.04,.6,.01).draw(Cube(), roadColor, 1).R();
+   M.S().move(.0, .602, .002).scale(.04,.1,.01).draw(Cube(), roadColor, 1).R();
+   M.S().move(-.5, -.0, .002).scale(.04,.701,.01).draw(Cube(), roadColor, 1).R();
+   M.S().move(.101, -.3, .002).scale(.6,.04,.01).draw(Cube(), roadColor, 1).R();
+   M.S().move(-.06, .47, .002).scale(.45,.04,.01).draw(Cube(), roadColor, 1).R();
+
+   // Residential
+
+   M.S().move(-.1, .2, .06).scale(.03,.08,.06).draw(Cube(), stoneColor, 1).R();
+   M.S().move(-.01, .3, .06).scale(.12,.04,.06).draw(Cube(), stoneColor, 1).R();
+   M.S().move(.08, .2, .06).scale(.03,.08,.06).draw(Cube(), stoneColor, 1).R();
+
+   M.S().move(-.1, .201, .12).turnX(Math.PI/2).scale(.03,.03,.08).draw(Cylinder(20, 1), roofColor, 1).R();
+   M.S().move(-.01, .3, .12).turnZ(Math.PI/2).turnX(Math.PI/2).scale(.04,.04,.1199).draw(Cylinder(20, 1), roofColor, 1).R();
+   M.S().move(.08, .201, .12).turnX(Math.PI/2).scale(.03,.03,.08).draw(Cylinder(20, 1), roofColor, 1).R();
+
+   M.S();
+      M.move(-.3, .3, .05);
+      drawHouseUnit(stoneColor, roofColor);
+      M.move(.0, -.2, .0);
+      drawHouseUnit(stoneColor, roofColor);
+      M.move(.0, -.2, .0);
+      drawHouseUnit(stoneColor, roofColor);
+   M.R();
+
+   M.S();
+      M.move(.0, -.08, .015);
+      M.S().scale(.08,.08,.015).draw(Cylinder(20, 1), stoneColor, 1).R();
+      M.S().move(.0, .0, .016).scale(.06,.06, 1).draw(Disk(20), waterColor, 1).R();
+      M.move(.0, .0, .04);
+      M.S().scale(.005,.005,.04).draw(Cylinder(20, 1), stoneColor, 1).R();
+      M.S().move(.0, .0, .005).scale(.03,.03, 1).draw(Disk(20), stoneColor, 1).R();
+      M.S().move(.0, .0, .025).scale(.02,.02, 1).draw(Disk(20), stoneColor, 1).R();
+      M.S().move(.0, .0, .04).scale(.01,.01, .01).draw(Sphere(20), stoneColor, 1).R();
+   M.R();
+
+   // Commercial
+
+   M.S().move(-.42, -.581, .004).scale(.04,.12,.01).draw(Cube(), cwoodColor, 1).R();
+   M.S().move(-.21, -.42, .004).scale(.25,.08,.01).draw(Cube(), cwoodColor, 1).R();
+   M.S().move(0, -.581, .004).scale(.04,.12,.01).draw(Cube(), cwoodColor, 1).R();
+
+   M.S().move(-.21, -.601, .003).scale(.17,.1,.01).draw(Cube(), cwaterColor, 1).R();
+
+   M.S();
+      M.move(-.2, -.4, .05);
+      drawHouseUnit(cstoneColor, croofColor);
+      M.move(-.1, -.03, .0);
+      M.S().move(.0, 0, -.03).scale(.02,.02,.02).draw(Cube(), cstoneColor, 1).R();
+      M.move(.0, 0, .01);
+      M.S().scale(.01,.01,.03).draw(Cylinder(20, 1), cstoneColor, 1).R();
+      M.S().move(.0, 0, .11);
+      M.move(.0, .01, -.11).turnX(Math.PI/3).move(.0, 0, .11).scale(.01,.01,.08).draw(Cylinder(20, 1), cwoodColor, 1).R();
+   M.R();
+
+   M.S();
+      M.move(.15, -.45, .04);
+      M.S().scale(.065,.065,.04).draw(Cube(), cstoneColor, 1).R();
+      M.move(.0, .0, .05);
+      M.S().scale(.065,.065,.01).draw(Cube(), cfbColor, 1).R();
+      M.move(.0, .0, .02);
+      M.S().scale(.065,.065,.01).draw(Cube(), cfwColor, 1).R();
+      M.move(.0, .0, .02);
+      M.S().scale(.065,.065,.01).draw(Cube(), cfgColor, 1).R();
+   M.R();
+
+   // Industrial
+
+   M.S();
+      M.move(.55, .0, .1);
+      drawWindMill(istoneColor, iwoodColor);
+   M.R();
+
+   M.S();
+      M.move(.6, .0, .003);
+      drawFram(igrain1Color, igrain2Color, igrain3Color, igrain2Color);
+      M.move(.0, .2, .0);
+      drawFram(igrain2Color, igrain1Color, igrain3Color, igrain3Color);
+      M.move(.0, -.62, .0);
+      drawFram(igrain3Color, igrain1Color, igrain3Color, igrain2Color);
+   M.R();
+
+   M.S();
+      M.move(.5, .4, .0).turnZ(Math.PI/2);
+      M.S().move(.0, .0, .06).scale(.065,.065,.06).draw(Cube(), ifactoryColor, 1).R();
+      M.move(.0, .0, .12);
+      M.S().turnX(Math.PI/4).scale(.065 / 1.001,.065 / 1.2,.06 / 1.2).draw(Cube(), ifacroofColor, 1).R();
+      M.S().move(.03, .04, .03).scale(.01, .01, .05).draw(Cube(), istoneColor, 1).R();
+   M.R();
+
+   M.S();
+      M.move(.61, .435, .1);
+      M.S().move(.0, .0, -.07).scale(.05,.03,.03).draw(Cube(), ifactoryColor, 1).R();
+      M.move(.0, .0, .05);
+      drawWindMill(istoneColor, iwoodColor);
+   M.R();
+
+   M.S();
+
+   M.move(.25, .6, .0);
+   M.S().move(.0, .0, .15).turnY(Math.PI/2).scale(.045,.05,.07).draw(Cylinder(20, 1), iwoodColor, 1).R();
+   M.S().move(.0599, .05, .06).turnX(Math.PI/12).scale(.005,.005,.07).draw(Cube(), istoneColor, 1).R();
+   M.S().move(-.0599, .05, .06).turnX(Math.PI/12).scale(.005,.005,.07).draw(Cube(), istoneColor, 1).R();
+   M.S().move(.0599, -.05, .06).turnX(-Math.PI/12).scale(.005,.005,.07).draw(Cube(), istoneColor, 1).R();
+   M.S().move(-.0599, -.05, .06).turnX(-Math.PI/12).scale(.005,.005,.07).draw(Cube(), istoneColor, 1).R();
+
+   M.R();
+
+   M.R();
+}
+requestAnimationFrame(drawFrame);
+</script>
+
