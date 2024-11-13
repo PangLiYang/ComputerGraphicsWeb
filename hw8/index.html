@@ -1,0 +1,326 @@
+<!-- <body bgcolor=#ffffff> -->
+
+<canvas id='canvas1' width=800 height=800 style="position:absolute;left:350;top:20"></canvas>
+<button><font color=#ff8080 size=10 onmousedown=down()>NightMode</font></button> <br>
+<h2>MOVE : WASD</h2>
+<h2>ROTATE : QE</h2>
+<h2>ZoomIn : F</h2>
+<h2>ZoomOut : R</h2>
+
+<script src=lib.js></script>
+<script>
+
+let selected = 1;
+let down = () => selected *= -1;
+
+let xx= 0;
+let yy = 0;
+let zoom = 0.5;
+let rx = 0;
+
+// let mx, my, ry = 0;
+// canvas1.onmousedown = e => { mx = e.clientX; my = e.clientY; }
+// canvas1.onmousemove = e => { if (mx) { rx += e.clientX - mx; ry += e.clientY - my; mx = e.clientX; my = e.clientY; } }
+// canvas1.onmouseup = e => mx = undefined;
+
+document.addEventListener('keydown', e => {
+   if (e.key === 'q' || e.key === 'Q') {
+      rx -= .1;
+   } else if (e.key === 'e' || e.key === 'E') {
+      rx += .1;
+   } else if (e.key === 'a' || e.key === 'A') {
+      xx += 0.05;
+   } else if (e.key === 'd' || e.key === 'D') {
+      xx -= 0.05;
+   } else if (e.key === 'w' || e.key === 'W') {
+      yy -= 0.05;
+   } else if (e.key === 's' || e.key === 'S') {
+      yy += 0.05;
+   } else if (e.key === 'f' || e.key === 'F') {
+      zoom += 0.1;
+   } else if (e.key === 'r' || e.key === 'R') {
+      zoom -= 0.1;
+   }
+
+   zoom = Math.max(0.1, Math.min(zoom, 1.5));
+   xx = Math.max(-1, Math.min(xx, 1));
+   yy = Math.max(-1, Math.min(yy, 1));
+});
+
+texture(0, '/textures/grass_texture.jpg');
+texture(1, '/textures/road_texture.jpg');
+texture(2, '/textures/concrete_texture.jpg');
+texture(3, '/textures/concrete_bump.jpg');
+texture(4, '/textures/roof_texture.jpg');
+texture(5, '/textures/metal_texture.jpg');
+texture(6, '/textures/metal_bump.jpg');
+texture(7, '/textures/wood_texture.jpg');
+texture(8, '/textures/water_texture.jpg');
+texture(9, '/textures/farm_texture.jpg');
+texture(10, '/textures/farm_texture2.jpg');
+texture(11, '/textures/farm_texture3.jpg');
+texture(12, '/textures/light_texture.jpg');
+texture(13, '/textures/sakura_texture.png');
+
+
+function drawFrame() {
+   requestAnimationFrame(drawFrame);
+   let t = Date.now() / 1000;
+   day = morning;
+   dark = night;
+
+   gl.clearColor(0.3, 0.8, 0.8, 1.0);
+   
+   if (selected == -1) {
+      gl.clearColor(0.1, 0.2, 0.2, 1.0);
+      day = night;
+      dark = morning;
+   }
+
+   gl.clear(gl.COLOR_BUFFER_BIT);
+
+   M.S().perspective(3).move(xx, yy, zoom).turnX(-Math.PI/3).turnZ(rx).turnZ(Math.PI/5);
+   // M.S().perspective(3).move(xx, yy, zoom).turnX(ry/100).turnY(rx/100).turnX(-Math.PI/3).turnZ(Math.PI/5);
+
+      // Base Land
+      M.S().scale(.7,.7,.01).draw(Cube(), day, 1, 0, -1).R();
+
+      // Roads
+      for (let i = 0; i < 15; i += 1) {
+         M.S().move(.35, -.662 + i * 0.08, .002).turnZ(Math.PI/2).scale(.04,.04,  .01).draw(Cube(), day, 1, 1, -1).R();
+      }
+
+      for (let i = 0; i < 3; i += 1) {
+         M.S().move(.0, .662 - i * 0.08, .002,   .002).turnZ(Math.PI/2).scale(.04,.04,  .01).draw(Cube(), day, 1, 1, -1).R();
+      }
+
+      for (let i = 0; i < 17; i += 1) {
+         M.S().move(-.5, .662 - i * 0.08, .002,   .002).turnZ(Math.PI/2).scale(.04,.04,  .01).draw(Cube(), day, 1, 1, -1).R();
+      }
+
+      M.S().move(-.5, -.662,   .002).turnZ(Math.PI/2).scale(.04,.04,  .01).draw(Cube(), day, 1, 1, -1).R();
+
+      for (let i = 0; i < 15; i += 1) {
+         M.S().move(-.5 + i * 0.08, -.3 ,   .00201).scale(.04,.04,  .01).draw(Cube(), day, 1, 1, -1).R();
+      }
+
+      M.S().move(-.5 + 14.51 * 0.08, -.3 ,   .00201).scale(.04,.04,  .01).draw(Cube(), day, 1, 1, -1).R();
+
+      for (let i = 0; i < 11; i += 1) {
+         M.S().move(-.5 + i * 0.08, .47 ,   .00201).scale(.04,.04,  .01).draw(Cube(), day, 1, 1, -1).R();
+      }
+
+      M.S().move(-.5 + 10.61 * 0.08, .47 ,   .00201).scale(.04,.04,  .01).draw(Cube(), day, 1, 1, -1).R();
+
+
+      // Residential
+      M.S().move(-.1, .2,  .06).scale(.03,.08,.06).draw(Cube(), day, 1, 2, 3).R();
+      M.S().move(-.01, .3, .06).scale(.12001,.04001,.06).draw(Cube(), day, 1, 2, 3).R();
+      M.S().move(.08, .2,  .06).scale(.03,.08,.06).draw(Cube(), day, 1, 2, 3).R();
+
+      M.S().move(-.1, .201, .12).turnX(Math.PI/2).scale(.03,.03,.08).draw(Cylinder(20, 1), day, 1, 4, 3).R();
+      M.S().move(-.01, .3,  .12).turnZ(Math.PI/2).turnX(Math.PI/2).scale(.04,.04,.1199).draw(Cylinder(20, 1), day, 1, 4, 3).R();
+      M.S().move(.08, .201, .12).turnX(Math.PI/2).scale(.03,.03,.08).draw(Cylinder(20, 1), day, 1, 4, 3).R();
+
+      M.S();
+         M.move(-.3, .3, .05).turnZ(Math.PI / 2);
+         drawHouseUnit(day, day);
+         M.move(-.2, .0, .0);
+         drawHouseUnit(day, day);
+         M.move(-.2, .0, .0);
+         drawHouseUnit(day, day);
+      M.R();
+
+      M.S();
+         M.move(.0, -.08, .015);
+         M.S().scale(.08,.08,.015).draw(Cylinder(20, 1), day, 1, 5, 6).R();
+         M.S().move(.0, .0, .016).scale(.06,.06, 1).draw(Disk(20), day, .8, 8, -1).R();
+
+         M.move(.0, .0, .04);
+         M.S().scale(.005,.005,.04).draw(Cylinder(20, 1), day, 1, 5, 6).R();
+         M.S().move(.0, .0, .005).scale(.03,.03, 1).draw(Disk(20), day, .6, 8, 6).R();
+         M.S().move(.0, .0, .025).scale(.02,.02, 1).draw(Disk(20), day, .6, 8, 6).R();
+         M.S().move(.0, .0, .04).scale(.01,.01, .01).draw(Sphere(20), day, .6, 8, 6).R();
+      M.R();
+
+      // Commercial
+
+      M.S().move(-.42, -.581, .004).scale(.04,.12,.01).draw(Cube(), day, 1, 7, -1).R();
+      M.S().move(-.21, -.42, .004).scale(.25,.08,.01).draw(Cube(), day, 1, 7, -1).R();
+      M.S().move(0, -.581, .004).scale(.04,.12,.01).draw(Cube(), day, 1, 7, -1).R();
+
+      M.S().move(-.21, -.601, .003).scale(.17,.1,.01).draw(Cube(), day, .8, 8, -1).R();
+
+      M.S();
+         M.move(-.2, -.4, .05);
+         M.S().turnZ(Math.PI / 2);
+         drawHouseUnit(day, day);
+         M.R();
+         M.move(-.1, -.03, .0);
+         M.S().move(.0, 0, -.03).scale(.02,.02,.02).draw(Cube(), day, 1, 5, 6).R();
+         M.move(.0, 0, .01);
+         M.S().scale(.01,.01,.03).draw(Cylinder(20, 1), day, 1, 5, 6).R();
+         M.S().move(.0, 0, .11);
+         M.move(.0, .01, -.11).turnX(Math.PI/3).move(.0, 0, .11).scale(.01,.01,.08).draw(Cylinder(20, 1), day, 1, 7, -1).R();
+      M.R();
+
+      M.S();
+         M.move(.15, -.45, .04).turnZ(Math.PI / 2);
+         M.S().scale(.065,.065,.04).draw(Cube(), day, 1, 2, 3).R();
+         M.move(.0, .0, .05);
+         M.S().scale(.065,.065,.01).draw(Cube(), day, 1, 8, 3).R();
+         M.move(.0, .0, .02);
+         M.S().scale(.065,.065,.01).draw(Cube(), day, 1, 3, 3).R();
+         M.move(.0, .0, .02);
+         M.S().scale(.065,.065,.01).draw(Cube(), day, 1, 7, -1).R();
+      M.R();
+
+      // Industrial
+      M.S();
+         M.move(.55, .0, .1);
+         drawWindMill(day, day);
+      M.R();
+
+      M.S();
+         M.move(.6, .0, .003);
+         drawFram(9, -1, 10, -1, 11, -1, 10, -1);
+         M.move(.0, .2, .0);
+         drawFram(10, -1, 9, -1, 11, -1, 11, -1);
+         M.move(.0, -.62, .0);
+         drawFram(11, -1, 9, -1, 11, -1, 10, -1);
+      M.R();
+
+      M.S();
+         M.move(.5, .4, .0).turnZ(Math.PI/2);
+         M.S().move(.0, .0, .06).scale(.065,.065,.06).draw(Cube(), day, 1, 5, 6).R();
+         M.move(.0, .0, .12);
+         M.S().turnX(Math.PI/4).scale(.065 / 1.001,.065 / 1.2,.06 / 1.2).draw(Cube(), day, 1, 4, 3).R();
+         M.S().move(.03, .04, .03).scale(.01, .01, .05).draw(Cube(), day, 1, 2, 3).R();
+      M.R();
+
+      M.S();
+         M.move(.61, .435, .1);
+         M.S().move(.0, .0, -.07).scale(.05,.03,.03).draw(Cube(), day, 1, 5, 6).R();
+         M.move(.0, .0, .05);
+         drawWindMill(day, day);
+      M.R();
+
+      M.S();
+         M.move(.25, .6, .0);
+         M.S().move(.0, .0, .15).turnY(Math.PI/2).scale(.045,.05,.07).draw(Cylinder(20, 1), day, 1, 9, -1).R();
+         M.S().move(.0599, .05, .06).turnX(Math.PI/12).scale(.005,.005,.07).draw(Cube(), day, 1, 5, 6).R();
+         M.S().move(-.0599, .05, .06).turnX(Math.PI/12).scale(.005,.005,.07).draw(Cube(), day, 1, 5, 6).R();
+         M.S().move(.0599, -.05, .06).turnX(-Math.PI/12).scale(.005,.005,.07).draw(Cube(), day, 1, 5, 6).R();
+         M.S().move(-.0599, -.05, .06).turnX(-Math.PI/12).scale(.005,.005,.07).draw(Cube(), day, 1, 5, 6).R();
+      M.R();
+
+      // Street Lights
+
+      M.S();
+
+         M.move(-.44, .78, .04);
+
+         for (let i = 0; i < 5; i += 1) {
+            M.move(0, -.2, 0);
+            drawLight();
+         }
+
+         for (let i = 0; i < 4; i += 1) {
+            M.move(.18, 0, 0);
+            drawLight();
+         }
+
+         for (let i = 0; i < 3; i += 1) {
+            M.move(0, .2, 0);
+            drawLight();
+         }
+
+         // for (let i = 0; i < 3; i += 1) {
+         //    M.move(-.18, 0, 0);
+         //    drawLight();
+         // }
+
+         M.move(-.85, .4, 0);
+
+         for (let i = 0; i < 7; i += 1) {
+            M.move(0, -.2, 0);
+            drawLight();
+         }
+
+      M.R();
+
+      // Sakuras
+
+      M.S();
+
+         M.move(-.65, -.3, .04);
+         drawTree(13, 0);
+
+         M.move(0.02, -.07, .0);
+         drawTree(13, .01);
+
+         M.move(-0.04, .03, .0);
+         drawTree(13, .02);
+
+         M.move(.05, -.2, .0);
+         drawTree(13, 0);
+
+         M.move(.03, -.02, .0);
+         drawTree(13, -.01);
+
+      M.R();
+
+      M.S();
+
+         M.move(.15, -.6, .04);
+         drawTree(13, 0);
+
+         M.move(0.02, -.07, .0);
+         drawTree(13, .01);
+
+         M.move(-0.04, .03, .0);
+         drawTree(13, .02);
+
+      M.R();
+
+      M.S();
+
+         M.move(-.3, .63, .04);
+         drawTree(13, 0);
+
+         M.move(0.02, -.07, .0);
+         drawTree(13, .01);
+
+         M.move(-0.04, .03, .0);
+         drawTree(13, .02);
+
+         M.move(0.2, .01, .0);
+         drawTree(13, -.02);
+
+         M.move(-0.05, -.02, .0);
+         drawTree(13, .0);
+
+         M.move(0.07, .01, .0);
+         drawTree(13, 0.01);
+
+      M.R();
+
+      M.S();
+
+         M.move(.2, .35, .04);
+         drawTree(13, 0);
+
+         for (let i = 0; i < 5; i += 1) {
+            M.move(.0, -.12, .0);
+            drawTree(13, 0);
+         }
+
+      M.R();
+
+
+   M.R();
+}
+requestAnimationFrame(drawFrame);
+
+</script>
+
