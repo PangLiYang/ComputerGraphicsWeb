@@ -1,0 +1,108 @@
+<!-- <body bgcolor=#ffffff> -->
+
+<canvas id='canvas1' width=600 height=600 style="position:absolute;left:350;top:20"></canvas>
+<button><font color=#ff8080 size=10 onmousedown=down()>Pitch!</font></button> <br>
+
+<script src=lib.js></script>
+<script>
+
+canvas1.addEventListener('mousedown', onMouseDown);
+canvas1.addEventListener('mousemove', onMouseMove);
+canvas1.addEventListener('mouseup', onMouseUp);
+
+texture(0, './textures/baseball.jpg');
+
+let toPitch = 1;
+let down = () => toPitch *= -1;
+
+gl.clearColor(0.1, 0.1, 0.1, 1);
+
+let controlPoints = [
+   {x: -0.6, y: -0.6}, 
+   {x: .1, y: .03}, 
+   {x: 0.55, y: 0.8}, 
+   {x: 0.65, y: 0.5}
+];
+
+let selectedPoint = null;
+
+
+
+function drawFrame() {
+
+   requestAnimationFrame(drawFrame);
+   gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+   // Strike Zone kernel
+   M.S().move(.6, .8, 0);
+      for (let i = 0; i < 4; i += 1) {
+            M.move(0, -.1, 0);
+            M.S().scale(0.15, 0.001, 0.001).draw(Cube(), [1, 0, 0], .8).R();
+      }
+   M.R();
+
+   M.S().move(.35, .55, 0);
+      for (let i = 0; i < 4; i += 1) {
+            M.move(.1, 0, 0);
+            M.S().scale(0.001, 0.15, 0.001).draw(Cube(), [1, 0, 0], .8).R();
+      }
+   M.R();
+   
+
+   // Control Points kernel
+   let input_x = controlPoints.map(p => p.x);
+   let input_y = controlPoints.map(p => p.y);
+   let params_x = mxv(bezier_matrix, input_x);
+   let params_y = mxv(bezier_matrix, input_y);
+
+   if (toPitch == 1) {
+
+      // Trace
+      for (let i = 0; i <= 1000; i += 1) {
+         let idx = i / 1000;
+         let xx = params_x[0] * idx ** 3 + params_x[1] * idx ** 2 + params_x[2] * idx + params_x[3];
+         let yy = params_y[0] * idx ** 3 + params_y[1] * idx ** 2 + params_y[2] * idx + params_y[3];
+
+         M.S().move(xx, yy, 0.0).scale(0.005, 0.005, 0.005).draw(Cube(), [.9, .9, .9], 0.05).R();
+      }
+
+      // Points
+      let p = controlPoints[0];
+      renderControlPoint(p);
+      for (let i = 1; i < controlPoints.length; i += 1) {
+         p = controlPoints[i];
+
+         renderControlPoint(p);
+
+         for (let j = 0; j < 20; j += 1) {
+            let dx = (1 - j / 20) * controlPoints[i - 1].x + j / 20 * p.x;
+            let dy = (1 - j / 20) * controlPoints[i - 1].y + j / 20 * p.y;
+            M.S().move(dx, dy, 0).scale(0.005, 0.005, 0.005).draw(Sphere(30), [1, 1, 1], 0.2).R();
+         }
+      }
+   }
+
+
+   // Pitch Ball kernel
+   if (toPitch == -1) {
+      let speed = 0.6;
+      let t = Date.now() / 1000 * speed;
+      let idx = t - Math.floor(t);
+
+      let xx = params_x[0] * idx ** 3 + params_x[1] * idx ** 2 + params_x[2] * idx + params_x[3];
+      let yy = params_y[0] * idx ** 3 + params_y[1] * idx ** 2 + params_y[2] * idx + params_y[3];
+      let mimicSize = (1 - idx) + idx * 0.5;
+
+      M.S().move(params_x[3], params_y[3], 0).turnX(1.7).scale(0.04, 0.04, 0.04).draw(Sphere(60), [.5, .5, .5], .5, 0).R();
+      M.S().move(xx, yy, 0).turnX(1.7).turnY(50 * speed * t).scale(0.04 * mimicSize, 0.04 * mimicSize, 0.04 * mimicSize);
+      M.draw(Sphere(60), [1, 1, 1], 1, 0).R();
+   }
+}
+
+
+
+requestAnimationFrame(drawFrame);
+
+</script>
+

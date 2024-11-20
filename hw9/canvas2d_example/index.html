@@ -1,0 +1,64 @@
+<center>
+
+<font face=helvetica>
+<a href=https://www.w3schools.com/tags/ref_canvas.asp>
+Reference guide to the HTML Canvas2D interface</a>
+
+<p>
+
+<canvas id=canvas1></canvas>
+
+<script>
+
+let w = 800, h = 800;                 // SET CANVAS WIDTH
+canvas1.width = w;                    // AND HEIGHT
+canvas1.height = h;
+let ctx = canvas1.getContext('2d');   // GET DRAWING CONTEXT
+ctx.lineWidth = 10;                   // SET LINE WIDTH
+ctx.lineCap = 'round';                // SET LINE ENDCAP STYLE
+
+// GET THE PIXEL WIDTH OF A TEXT STRING IN THE CURRENT FONT
+
+let textWidth = text => ctx.measureText(text).width;
+
+// THE ANIMATION LOOP
+
+function drawFrame() {
+   requestAnimationFrame(drawFrame);
+
+   // GET THE CURRENT TIME
+
+   let time = Date.now() / 1000;
+   let t = Math.sin(time);
+
+   // CLEAR THE CANVAS FOR THIS ANIMATION FRAME
+
+   ctx.fillStyle = '#a0c8ff';
+   ctx.fillRect(0,0,w,h);
+
+   // DRAW AN ANIMATING LINE FIGURE
+
+   ctx.strokeStyle = 'black';
+   ctx.beginPath();
+   ctx.moveTo(  w/3+t*w/6,   h/2);
+   ctx.lineTo(  w/2      , 5*h/6);
+   ctx.lineTo(2*w/3-t*w/6,   h/2);
+   ctx.stroke();
+
+   // DRAW SOME TEXT
+
+   ctx.fillStyle = '#800000';
+   let text1 = 'Hello there!';
+   ctx.font = '50px Helvetica';
+   ctx.fillText(text1, w/2-textWidth(text1)/2, h/3);
+
+   // DRAW SOME NUMERIC TEXT
+
+   let text2 = time % 60 >> 0;
+   ctx.font = '30px Courier';
+   ctx.fillText(text2, w/2-textWidth(text2)/2, h/3 + 50);
+}
+requestAnimationFrame(drawFrame);
+</script>
+
+

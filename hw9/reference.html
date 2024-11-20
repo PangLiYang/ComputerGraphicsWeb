@@ -1,0 +1,102 @@
+<!-- <body bgcolor=#ffffff> -->
+
+<canvas id='canvas1' width=800 height=800 style="position:absolute;left:350;top:20"></canvas>
+<button><font color=#ff8080 size=10 onmousedown=down()>NightMode</font></button> <br>
+<h2>MOVE : WASD</h2>
+<h2>ROTATE : QE</h2>
+<h2>ZoomIn : F</h2>
+<h2>ZoomOut : R</h2>
+
+<script src=lib.js></script>
+<script>
+
+texture(0, './textures/baseball.jpg');
+
+let selected = 1;
+let down = () => selected *= -1;
+
+gl.clearColor(0.1, 0.1, 0.1, 1);
+
+color = [.8, .8, .8]
+
+function drawFrame() {
+
+   requestAnimationFrame(drawFrame);
+   gl.clear(gl.COLOR_BUFFER_BIT);
+
+   /*
+
+   // Cubic splines
+
+   let speed = 0.7;
+   let t = Date.now() / 1000 * speed;
+   t -= Math.floor(t);
+
+   let xx = t;
+   let yy = 7.7 * xx ** 3 + -11.7 * xx ** 2 + 5.0 * xx - .6;
+   
+   
+   M.S().move(xx - .5, yy,  .0).scale(.05,.05,.05).draw(Cube(), color, .8).R();
+
+   for (let i = 0; i <= 1000; i += 1) {
+      let xx = i / 1000;
+      let yy = 7.7 * xx ** 3 + -11.7 * xx ** 2 + 5.0 * xx - .6;
+
+      M.S().move(xx - .5, yy,  .0).scale(.005,.005,.005).draw(Cube(), color, .05).R();
+   }
+
+   */
+
+   /*
+
+   // Hermite splines
+
+   let hermite_matrix = [2, -3, 0, 1, -2, 3, 0, 0, 1, -2, 1, 0, 1, -1, 0, 0];
+
+   let input = [-.5, .5, -.5, -.5]; // p0, p1, r0, r1
+   let params = mxv(hermite_matrix, input);
+
+   for (let i = 0; i <= 1000; i += 1) {
+      let xx = i / 1000;
+      let yy = params[0] * xx ** 3 + params[1] * xx ** 2 + params[2] * xx + params[3];
+
+      M.S().move(xx -.5, yy,  .0).scale(.005,.005,.005).draw(Cube(), color, .05).R();
+   }
+
+   */
+
+   // Bezier splines
+
+   let bezier_matrix = [-1, 3, -3, 1, 3, -6, 3, 0, -3, 3, 0, 0, 1, 0, 0, 0];
+
+   let input_x = [-.6, -.2, .2, .6];
+   let params_x = mxv(bezier_matrix, input_x);
+   let input_y = [-.2, .8, -.4, 0];
+   let params_y = mxv(bezier_matrix, input_y);
+
+   for (let i = 0; i <= 1000; i += 1) {
+      let idx = i / 1000;
+      let xx = params_x[0] * idx ** 3 + params_x[1] * idx ** 2 + params_x[2] * idx + params_x[3];
+      let yy = params_y[0] * idx ** 3 + params_y[1] * idx ** 2 + params_y[2] * idx + params_y[3];
+
+      M.S().move(xx, yy,  .0).scale(.005,.005,.005).draw(Cube(), color, .05).R();
+   }
+
+   /*
+   let speed = 0.7;
+   let t = Date.now() / 1000 * speed;
+
+   M.S().turnY(t).scale(.2,.2,.2).draw(Sphere(60), color, 1, 0).R();
+   */
+
+
+   // M.S().perspective(3).turnX(-Math.PI/3).turnZ(Math.PI/5);
+
+   // M.R();
+
+}
+
+requestAnimationFrame(drawFrame);
+
+</script>
+
