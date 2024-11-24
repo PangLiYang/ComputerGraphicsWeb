@@ -1,0 +1,131 @@
+<!-- <body bgcolor=#ffffff> -->
+
+<canvas id='canvas1' width=600 height=600 style="position:absolute;left:350;top:20"></canvas>
+<button><font color=#ff8080 size=8 onmousedown=down()>Add</font></button> <br>
+
+<br>
+<div id="spline-buttons"></div>
+
+<br>
+<button><font color=#ff8080 size=8 onmousedown=down2()>Delete</font></button> <br>
+
+<br>
+<button><font color=#ff8080 size=8 onmousedown=down3()>Show Log</font></button> <br>
+
+<style>
+   /* CSS Styling */
+   #spline-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+   }
+
+   #spline-buttons button {
+      width: 200px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+   }
+
+   #spline-buttons button:hover {
+      background-color: #e0e0e0;
+   }
+</style>
+
+<script src=lib.js></script>
+<script>
+
+canvas1.addEventListener('mousedown', onMouseDown);
+canvas1.addEventListener('mousemove', onMouseMove);
+canvas1.addEventListener('mouseup', onMouseUp);
+
+gl.clearColor(0.1, 0.1, 0.1, 1);
+
+let cnt = controlPointSet.length - 1;
+
+let down = () => {
+   controlPointSet.push([
+      {x: -0.6 + .02 * cnt, y: 0.9 - .02 * cnt}, 
+      {x: -0.2 + .02 * cnt, y: 0.9 - .02 * cnt}, 
+      {x:  0.2 + .02 * cnt, y: 0.9 - .02 * cnt}, 
+      {x:  0.6 + .02 * cnt, y: 0.9 - .02 * cnt}
+   ]);
+   cnt += 1;
+   switchSpline(cnt);
+   createSplineButtons();
+}
+
+let down2 = () => {
+   controlPointSet.pop();
+   cnt -= 1;
+   switchSpline(cnt);
+   createSplineButtons();
+}
+
+let down3 = () => {
+   console.log(controlPointSet);
+}
+
+let selectedPoint = null;
+
+createSplineButtons();
+
+
+function drawFrame() {
+
+   requestAnimationFrame(drawFrame);
+   gl.clear(gl.COLOR_BUFFER_BIT);
+
+   for (let i = 0; i < controlPointSet.length; i++) {
+
+      let controler = controlPointSet[i];
+   
+      // Control Points kernel
+      let input_x = controler.map(p => p.x);
+      let input_y = controler.map(p => p.y);
+      let params_x = mxv(bezier_matrix, input_x);
+      let params_y = mxv(bezier_matrix, input_y);
+
+      let line_color = [.9, .9, .9];
+
+      if (i == target_spine) {
+         line_color = [1, .0, .0];
+      }
+
+      // Trace
+      for (let i = 0; i <= 500; i += 1) {
+         let idx = i / 500;
+         let xx = params_x[0] * idx ** 3 + params_x[1] * idx ** 2 + params_x[2] * idx + params_x[3];
+         let yy = params_y[0] * idx ** 3 + params_y[1] * idx ** 2 + params_y[2] * idx + params_y[3];
+
+         M.S().move(xx, yy, 0.0).scale(0.005, 0.005, 0.005).draw(Cube(), line_color, 1).R();
+      }
+
+      // Points
+
+      if (target_ctr == 1) {
+         let p = controler[0];
+         renderControlPoint(p);
+         for (let i = 1; i < controler.length; i += 1) {
+            p = controler[i];
+
+            renderControlPoint(p);
+
+            for (let j = 0; j < 20; j += 1) {
+               let dx = (1 - j / 20) * controler[i - 1].x + j / 20 * p.x;
+               let dy = (1 - j / 20) * controler[i - 1].y + j / 20 * p.y;
+               M.S().move(dx, dy, 0).scale(0.005, 0.005, 0.005).draw(Sphere(30), [1, 1, 1], 0.2).R();
+            }
+         }
+      }
+   }
+   
+}
+
+requestAnimationFrame(drawFrame);
+
+</script>
+
