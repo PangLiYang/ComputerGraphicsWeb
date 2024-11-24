@@ -79,9 +79,9 @@ function drawFrame() {
    requestAnimationFrame(drawFrame);
    gl.clear(gl.COLOR_BUFFER_BIT);
 
-   for (let i = 0; i < controlPointSet.length; i++) {
+   for (let k = 0; k < controlPointSet.length; k++) {
 
-      let controler = controlPointSet[i];
+      let controler = controlPointSet[k];
    
       // Control Points kernel
       let input_x = controler.map(p => p.x);
@@ -90,8 +90,10 @@ function drawFrame() {
       let params_y = mxv(bezier_matrix, input_y);
 
       let line_color = [.9, .9, .9];
+      let controler_color = [1, 1, 1];
+      let controler_opacity = 0.2;
 
-      if (i == target_spine) {
+      if (k == target_spine) {
          line_color = [1, .0, .0];
       }
 
@@ -108,11 +110,21 @@ function drawFrame() {
 
       if (target_ctr == 1) {
          let p = controler[0];
-         renderControlPoint(p);
+         
+         if (k == target_spine) {
+            renderTargetPoint(p);
+         } else {
+            renderControlPoint(p);
+         }
+
          for (let i = 1; i < controler.length; i += 1) {
             p = controler[i];
 
-            renderControlPoint(p);
+            if (k == target_spine) {
+               renderTargetPoint(p);
+            } else {
+               renderControlPoint(p);
+            }
 
             for (let j = 0; j < 20; j += 1) {
                let dx = (1 - j / 20) * controler[i - 1].x + j / 20 * p.x;

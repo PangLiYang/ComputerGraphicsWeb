@@ -268,14 +268,14 @@ let draw = (Shape, color, opacity, texture, bumpTexture) => {
 // New add features
 
 let target_spine;
-let target_ctr = -1;
+let target_ctr = 1;
 
 function createSplineButtons() {
    const buttonContainer = document.getElementById("spline-buttons");
    buttonContainer.innerHTML = "";
 
    const button2 = document.createElement("button");
-   button2.textContent = `Show Controlers`;
+   button2.textContent = `Hide Controlers`;
    button2.addEventListener("click", () => {
       clearControl();
    });
@@ -355,6 +355,14 @@ let renderControlPoint = p => {
       M.S().move(p.x, p.y, 0).scale(0.02, 0.02, 0.02).draw(Sphere(30), [1, 0, 0], 1).R();
    } else {
       M.S().move(p.x, p.y, 0).scale(0.02, 0.02, 0.02).draw(Sphere(30), [1, 1, 1], 0.3).R();
+   }
+}
+
+let renderTargetPoint = p => {
+   if (p == selectedPoint) {
+      M.S().move(p.x, p.y, 0).scale(0.02, 0.02, 0.02).draw(Sphere(30), [1, 0, 0], 1).R();
+   } else {
+      M.S().move(p.x, p.y, 0).scale(0.02, 0.02, 0.02).draw(Sphere(30), [1, 1, 0], 1).R();
    }
 }
 
