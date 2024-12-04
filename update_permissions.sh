@@ -8,6 +8,8 @@ chmod 711 "$BASE_DIR/graphics/"
 
 # Set permissions for the files and directories in 'graphics'
 chmod 644 "$BASE_DIR/graphics/index.html"
+chmod 644 "$BASE_DIR/graphics/gpu_report.pdf"
+chmod 644 "$BASE_DIR/graphics/multicore_report.pdf"
 
 # Set permissions for homework directories and their contents
 chmod 711 "$BASE_DIR/graphics/hw1/"
