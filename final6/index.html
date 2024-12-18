@@ -16,7 +16,7 @@ let mySphere = Sphere(30);
 startGL(canvas1);
 
 let particleSize = 0.03;
-let gravity = 20;
+let gravity = 10;
 let smoothRadius = 0.2;
 let positions = [];
 let velocitys = [];
@@ -31,6 +31,9 @@ let pressureMul = 15;
 let nx = 10;
 let ny = 10;
 
+let c1m = 0.02;
+let c2m = 0.01;
+
 let lastTime = Date.now() / 1000;
 
 initDen(100, 100);
@@ -42,6 +45,9 @@ initDen(100, 100);
 
 function drawFrame() {
    requestAnimationFrame(drawFrame);
+
+   c1m *= 0.98;
+   c2m *= 0.98;
 
    gl.clearColor(0.0, 0.0, 0.0, 1.0);
    gl.clear(gl.COLOR_BUFFER_BIT);
@@ -55,8 +61,8 @@ function drawFrame() {
    for (let i = 0; i < den.length; i += 1) {
 
       let property = calculateDensity(den[i]);
-      let c2 = 0.02 * Math.sqrt(property);
-      property *= 0.01;
+      let c2 = c1m * Math.sqrt(property);
+      property *= c2m;
       // M.S().move(den[i]).scale(particleSize).draw(myCube,[property,property,property], 1).R();
       M.S().move(den[i]).scale(particleSize).draw(myCube,[property,c2,0], 1).R();
    }

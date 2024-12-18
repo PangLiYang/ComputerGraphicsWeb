@@ -749,21 +749,9 @@ let createParticles2 = (xx, yy) => {
 
 function mouseDown(event) {
    let {x, y} = getMousePos(event);
-
-   // for (let i = 0; i < positions.length; i += 1) {
-
-   //    let xx = positions[i][0];
-   //    let yy = positions[i][1];
-   //    let dd = dds(x, y, xx, yy);
-
-   //    if (dd < 0.3) {
-   //       let mul = 0.3 / dd;
-   //       positions[i][0] += (positions[i][0] - x) * mul;
-   //       positions[i][1] += (positions[i][1] - y) * mul;
-   //       velocitys[i][0] += (positions[i][0] - x) * mul * 10000000;
-   //       velocitys[i][1] += (positions[i][1] - y) * mul * 10000000;
-   //    }
-   // }
+   
+   c1m = 0.02;
+   c2m = 0.01;
 
    createFirework(x,y);
 }
