@@ -33,7 +33,6 @@ let ny = 20;
 
 let lastTime = Date.now() / 1000;
 
-// init(nx,ny);
 initDen(100, 100);
 createParticles(42);
 
@@ -56,7 +55,7 @@ function drawFrame() {
    for (let i = 0; i < den.length; i += 1) {
 
       let property = calculateDensity(den[i]);
-      property = 0.08 * Math.sqrt(property);
+      property = 0.03 * Math.sqrt(property);
       // M.S().move(den[i]).scale(particleSize).draw(myCube,[property,property,property], 1).R();
       M.S().move(den[i]).scale(particleSize).draw(myCube,[0,0,property], 1).R();
    }

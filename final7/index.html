@@ -7,6 +7,8 @@
 <script src=lib.js></script>
 <script>
 
+canvas1.addEventListener('mousedown', onMouseDown);
+
 let myCube   = Cube();
 let myTube   = Tube(20);
 let mySphere = Sphere(30);
@@ -14,8 +16,8 @@ let mySphere = Sphere(30);
 startGL(canvas1);
 
 let particleSize = 0.03;
-let gravity = 5;
-let smoothRadius = 0.3;
+let gravity = 20;
+let smoothRadius = 0.2;
 let positions = [];
 let velocitys = [];
 let properties = [];
@@ -23,16 +25,16 @@ let densities = [];
 let den = [];
 let energyLoss = 0.8;
 
-let targetDensity = 90;
-let pressureMul = 5;
+let targetDensity = 75;
+let pressureMul = 15;
 
-let nx = 20;
-let ny = 20;
+let nx = 10;
+let ny = 10;
 
 let lastTime = Date.now() / 1000;
 
-initDen(50, 50);
-createParticles(42);
+initDen(100, 100);
+// createParticles(42);
 
 // let midx = Math.floor(ny / 2) * nx + Math.floor(nx / 2);
 // let ff = calculateGradient(positions[midx]);
@@ -53,23 +55,26 @@ function drawFrame() {
    for (let i = 0; i < den.length; i += 1) {
 
       let property = calculateDensity(den[i]);
-      property = 0.03 * Math.sqrt(property);
-      M.S().move(den[i]).scale(particleSize).draw(myCube,[property,property,property], 1).R();
+      let c2 = 0.02 * Math.sqrt(property);
+      property *= 0.01;
+      // M.S().move(den[i]).scale(particleSize).draw(myCube,[property,property,property], 1).R();
+      M.S().move(den[i]).scale(particleSize).draw(myCube,[property,c2,0], 1).R();
    }
 
    for (let i = 0; i < positions.length; i += 1) {
+
+      velocitys[i][1] = -1 * gravity * deltaTime;
 
       let pressure = calculatePressureGradient(i);
       pressure[0] /=  densities[i];
       pressure[1] /=  densities[i];
 
       velocitys[i][0] = deltaTime * pressure[0];
-      velocitys[i][1] = deltaTime * pressure[1];
+      velocitys[i][1] += deltaTime * pressure[1];
 
-      positions[i] = positions[i].map((p, j) => p + velocitys[i][j] * deltaTime);
-
-      resolveCollisions(positions[i], velocitys[i]);
-      M.S().move(positions[i]).scale(particleSize).draw(mySphere,[.2,.2,1], 0.6).R();
+      positions[i] = positions[i].map((p, j) => p + velocitys[i][j] * deltaTime * 0.8);
+      // resolveCollisions(positions[i], velocitys[i]);
+      // M.S().move(positions[i]).scale(particleSize).draw(mySphere,[.9,.9,.1], 0.6).R();
    }
 
 }

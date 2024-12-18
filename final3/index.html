@@ -31,7 +31,6 @@ let ny = 20;
 
 let lastTime = Date.now() / 1000;
 
-// init(nx,ny);
 initDen(50, 50);
 createParticles(42);
 
@@ -70,8 +69,6 @@ function drawFrame() {
       velocitys[i][1] += deltaTime * pressure[1];
 
       positions[i] = positions[i].map((p, j) => p + velocitys[i][j] * deltaTime);
-
-      console.log(positions[i]);
 
       resolveCollisions(positions[i], velocitys[i]);
       M.S().move(positions[i]).scale(particleSize).draw(mySphere,[.2,.2,1], 0.6).R();

@@ -30,7 +30,6 @@ let ny = 30;
 
 let lastTime = Date.now() / 1000;
 
-// init(nx,ny);
 createParticles(42);
 
 function drawFrame() {
@@ -69,10 +68,6 @@ function drawFrame() {
       resolveCollisions(positions[i], velocitys[i]);
       M.S().move(positions[i]).scale(particleSize).draw(mySphere,[.2,.2,.9], 0.6).R();
    }
-
-   // let midx = Math.floor(ny / 2) * nx + Math.floor(nx / 2);
-   // let ff = calculateGradient(positions[midx]);
-   // console.log(ff);
 
 }
 requestAnimationFrame(drawFrame);
