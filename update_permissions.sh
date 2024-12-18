@@ -23,6 +23,11 @@ chmod 711 "$BASE_DIR/graphics/hw8/"
 chmod 711 "$BASE_DIR/graphics/hw9/"
 chmod 711 "$BASE_DIR/graphics/hw9_2/"
 chmod 711 "$BASE_DIR/graphics/hw10/"
+chmod 711 "$BASE_DIR/graphics/final/"
+chmod 711 "$BASE_DIR/graphics/final2/"
+chmod 711 "$BASE_DIR/graphics/final3/"
+chmod 711 "$BASE_DIR/graphics/final4/"
+chmod 711 "$BASE_DIR/graphics/final5/"
 
 chmod 644 "$BASE_DIR/graphics/hw1/"*
 chmod 644 "$BASE_DIR/graphics/hw2/"*
@@ -35,6 +40,11 @@ chmod 644 "$BASE_DIR/graphics/hw8/"*
 chmod 644 "$BASE_DIR/graphics/hw9/"*
 chmod 644 "$BASE_DIR/graphics/hw9_2/"*
 chmod 644 "$BASE_DIR/graphics/hw10/"*
+chmod 644 "$BASE_DIR/graphics/final/"*
+chmod 644 "$BASE_DIR/graphics/final2/"*
+chmod 644 "$BASE_DIR/graphics/final3/"*
+chmod 644 "$BASE_DIR/graphics/final4/"*
+chmod 644 "$BASE_DIR/graphics/final5/"*
 
 chmod 711 "$BASE_DIR/graphics/hw8/textures/"
 chmod 644 "$BASE_DIR/graphics/hw8/textures/"*

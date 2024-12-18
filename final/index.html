@@ -1,0 +1,81 @@
+<body bgcolor=#204080><font face=courier>
+<center>
+<table>
+<tr><th valign=top>
+<th><canvas id=canvas1 width=700 height=700></canvas>
+</table>
+<script src=lib.js></script>
+<script>
+
+let myCube   = Cube();
+let myTube   = Tube(20);
+let mySphere = Sphere(30);
+
+startGL(canvas1);
+
+let particleSize = 0.02;
+let gravity = 5;
+let smoothRadius = 0.3;
+let positions = [];
+let velocitys = [];
+let properties = [];
+let densities = [];
+let energyLoss = 0.8;
+
+let targetDensity = 5000;
+let pressureMul = 0.5;
+
+let nx = 30;
+let ny = 30;
+
+let lastTime = Date.now() / 1000;
+
+// init(nx,ny);
+createParticles(42);
+
+function drawFrame() {
+   requestAnimationFrame(drawFrame);
+
+   gl.clearColor(0.0, 0.0, 0.0, 1.0);
+   gl.clear(gl.COLOR_BUFFER_BIT);
+
+   let currentTime = Date.now() / 1000;
+   let deltaTime = currentTime - lastTime;
+   lastTime = currentTime;
+
+   updateDensities();
+
+   for (let i = 0; i < positions.length; i += 1) {
+
+      // let pressure = calculatePressureGradient(i);
+      // pressure[0] /=  densities[i];
+      // pressure[1] /=  densities[i];
+
+      // velocitys[i][0] = deltaTime * pressure[0];
+      // velocitys[i][1] = deltaTime * pressure[1];
+      
+      // positions[i] = positions[i].map((p, j) => p + velocitys[i][j] * deltaTime);
+      // resolveCollisions(positions[i], velocitys[i]);
+
+      // M.S().move(positions[i]).scale(particleSize).draw(mySphere,[.2,.2,.9], 0.6).R();
+
+      let g = calculatePressureGradient(i);
+      g[0] /=  densities[i];
+      g[1] /=  densities[i];
+
+      positions[i][0] += 0.0001 * g[0];
+      positions[i][1] += 0.0001 * g[1];
+
+      resolveCollisions(positions[i], velocitys[i]);
+      M.S().move(positions[i]).scale(particleSize).draw(mySphere,[.2,.2,.9], 0.6).R();
+   }
+
+   // let midx = Math.floor(ny / 2) * nx + Math.floor(nx / 2);
+   // let ff = calculateGradient(positions[midx]);
+   // console.log(ff);
+
+}
+requestAnimationFrame(drawFrame);
+
+</script>
+
